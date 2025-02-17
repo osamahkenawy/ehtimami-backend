@@ -6,7 +6,6 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
 model User {
   id        Int     @id @default(autoincrement())
   firstName String  @db.VarChar(50)
@@ -18,6 +17,8 @@ model User {
 
   roles     UserAccessRoles[]
   profile   UserProfile?
+  statusId  Int     @default(2) // Default to "Inactive"
+  status    UserStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
 }
 
 model Role {
@@ -44,4 +45,10 @@ model UserProfile {
   avatar  String? @db.VarChar(255)
 
   user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserStatus {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+  users User[]
 }

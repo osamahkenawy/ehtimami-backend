@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `User` MODIFY `statusId` INTEGER NOT NULL DEFAULT 2;
