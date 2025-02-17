@@ -4,22 +4,27 @@ const { successResponse, errorResponse } = require("../utils/responseUtil");
 
 const prisma = new PrismaClient();
 
+
 // ✅ Register User
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, roleIds } = req.body;
+        const { firstName, lastName, email, password, roleIds, bio, avatar } = req.body;
 
-        if (!firstName || !lastName || !email || !password || !roleIds) {
-            return errorResponse(res, "Missing required fields.");
-        }
-
-        console.log("🔍 Debug: Incoming Password Type:", typeof password); // Debug
-
-        if (typeof password !== "string") {
-            return errorResponse(res, "Password must be a string.");
+        if (!firstName || !lastName || !email || !password || !roleIds || !Array.isArray(roleIds)) {
+            return errorResponse(res, "Missing required fields or invalid roleIds format.");
         }
 
         const hashedPassword = await hashPassword(password);
+
+        // 🔍 Check if all role IDs exist
+        const validRoles = await prisma.role.findMany({
+            where: { id: { in: roleIds } },
+        });
+
+        const validRoleIds = validRoles.map(role => role.id);
+        if (validRoleIds.length !== roleIds.length) {
+            return errorResponse(res, "Some role IDs are invalid.");
+        }
 
         const user = await prisma.user.create({
             data: {
@@ -27,14 +32,19 @@ const register = async (req, res) => {
                 lastName,
                 email,
                 password: hashedPassword,
-                roles: { create: roleIds.map(roleId => ({ roleId })) },
+                statusId: 2, // Default to "Inactive"
+                roles: { create: validRoleIds.map(roleId => ({ roleId })) },
+                profile: bio || avatar ? { create: { bio, avatar } } : undefined,
             },
-            include: { roles: { include: { role: true } } },
+            include: {
+                roles: { include: { role: true } },
+                profile: true,
+                status: true,
+            },
         });
 
         return successResponse(res, "User registered successfully", user, 201);
     } catch (error) {
-        console.error("❌ Debug Error:", error.message); // Log the error message
         return errorResponse(res, error.message || "An error occurred.");
     }
 };
