@@ -7,6 +7,11 @@
     "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "_moduleAliases": {
+    "@": "src/",
+    "@config": "src/config",
+    "@controllers": "src/controllers"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -16,7 +21,9 @@
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase-admin": "^13.1.0",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "mysql2": "^3.12.0"
   },
   "devDependencies": {

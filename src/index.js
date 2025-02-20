@@ -1,6 +1,8 @@
+require("module-alias/register");
 const express = require("express");
-const { PORT } = require("./config");
-const authRoutes = require("./routes/authRoutes");
+const { PORT } = require("@config/config");
+const authRoutes = require("@/routes/authRoutes");
+
 
 const app = express();
 app.use(express.json());
