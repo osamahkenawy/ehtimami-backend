@@ -1,7 +1,9 @@
 const admin = require("firebase-admin");
+const dotenv = require("dotenv");
 
-// Load Firebase service account credentials
-const serviceAccount = require("../firebase-service-account.json"); // Ensure this file exists
+dotenv.config();
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -9,13 +11,9 @@ admin.initializeApp({
 
 const messaging = admin.messaging();
 
-// Function to send push notification
 const sendPushNotification = async (deviceToken, title, body) => {
   const message = {
-    notification: {
-      title: title,
-      body: body,
-    },
+    notification: { title, body },
     token: deviceToken,
   };
 

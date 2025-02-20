@@ -1,6 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
-const { hashPassword, comparePassword, generateToken } = require("../services/authService");
-const { successResponse, errorResponse } = require("../utils/responseUtil");
+const { hashPassword, comparePassword, generateToken } = require("@/services/authService");
+const { successResponse, errorResponse } = require("@/utils/responseUtil");
+const { sendPushNotification } = require("@config/firebaseAdmin");
 
 const prisma = new PrismaClient();
 
@@ -54,7 +55,7 @@ const register = async (req, res) => {
 // ✅ Login User
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, deviceToken } = req.body;
 
         if (!email || !password) {
             return errorResponse(res, "Email and password are required.");
@@ -75,6 +76,16 @@ const login = async (req, res) => {
         }
 
         const token = generateToken(user);
+
+        // 📢 Send push notification after successful login
+        if (deviceToken) {
+            await sendPushNotification(
+                deviceToken,
+                "Welcome to Ehtimami",
+                `Hello ${user.firstName}, welcome to Ehtimami! 🎉`
+            );
+        }
+
         return successResponse(res, "Login successful", { token });
     } catch (error) {
         return errorResponse(res, error.message || "An error occurred.");

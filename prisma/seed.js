@@ -1,10 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcrypt"); // ✅ Use bcrypt, not bcryptjs
+const bcrypt = require("bcrypt"); 
 
 const prisma = new PrismaClient();
 
 async function main() {
-    // ✅ Seed Roles
     const roles = [
         { id: 1, name: "admin" },
         { id: 2, name: "teacher" },
@@ -20,7 +19,6 @@ async function main() {
         });
     }
 
-    // ✅ Seed User Statuses
     const statuses = [
         { id: 1, name: "Active" },
         { id: 2, name: "Inactive" },
