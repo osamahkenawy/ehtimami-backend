@@ -10,7 +10,7 @@ const createSchool = async (req, res) => {
             school_region, school_city, school_district, education_level, curriculum
         } = req.body;
 
-        if (!school_name || !school_unique_id || !school_manager_id || !school_email || !school_phone) {
+        if (!school_name || !school_unique_id || !school_email || !school_phone) {
             return errorResponse(res, "Missing required fields.");
         }
 

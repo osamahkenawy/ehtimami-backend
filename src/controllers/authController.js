@@ -7,12 +7,14 @@ const prisma = new PrismaClient();
 
 
 // ✅ Register User
-const register = async (req, res) => {
+// ✅ Register User (Now Supports Internal Calls)
+const register = async (req, res = null) => {
     try {
-        const { firstName, lastName, email, password, roleIds, bio, avatar } = req.body;
+        const { firstName, lastName, email, password, roleIds, bio, avatar } = req.body || req;
 
         if (!firstName || !lastName || !email || !password || !roleIds || !Array.isArray(roleIds)) {
-            return errorResponse(res, "Missing required fields or invalid roleIds format.");
+            if (res) return errorResponse(res, "Missing required fields or invalid roleIds format.");
+            throw new Error("Missing required fields or invalid roleIds format.");
         }
 
         const hashedPassword = await hashPassword(password);
@@ -24,7 +26,8 @@ const register = async (req, res) => {
 
         const validRoleIds = validRoles.map(role => role.id);
         if (validRoleIds.length !== roleIds.length) {
-            return errorResponse(res, "Some role IDs are invalid.");
+            if (res) return errorResponse(res, "Some role IDs are invalid.");
+            throw new Error("Some role IDs are invalid.");
         }
 
         const user = await prisma.user.create({
@@ -33,7 +36,7 @@ const register = async (req, res) => {
                 lastName,
                 email,
                 password: hashedPassword,
-                statusId: 2, // Default to "Inactive"
+                statusId: 1, // Active by default
                 roles: { create: validRoleIds.map(roleId => ({ roleId })) },
                 profile: bio || avatar ? { create: { bio, avatar } } : undefined,
             },
@@ -44,9 +47,11 @@ const register = async (req, res) => {
             },
         });
 
-        return successResponse(res, "User registered successfully", user, 201);
+        if (res) return successResponse(res, "User registered successfully", user, 201);
+        return { success: true, data: user };
     } catch (error) {
-        return errorResponse(res, error.message || "An error occurred.");
+        if (res) return errorResponse(res, error.message || "An error occurred.");
+        return { success: false, error: error.message };
     }
 };
 
