@@ -11,7 +11,9 @@
   "_moduleAliases": {
     "@": "src/",
     "@config": "src/config",
-    "@controllers": "src/controllers"
+    "@controllers": "src/controllers",
+    "@routes": "src/routes",
+    "@middlewares": "src/middlewares"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
