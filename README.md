@@ -83,6 +83,8 @@ If you have seed data, run:
 
 ```sh
 npx prisma db seed
+sudo /usr/local/mysql/support-files/mysql.server start
+npx prisma migrate reset
 ```
 
 ---
