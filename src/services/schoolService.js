@@ -18,51 +18,63 @@ const prisma = new PrismaClient();
  * Create school and school manager
  */
 const createSchool = async (data) => {
-    const {
-        school_name, school_unique_id, school_address, school_lat, school_lng,
-        school_type, school_manager_id, school_email, school_phone,
-        school_region, school_city, school_district, education_level, curriculum
-    } = data;
+    return await prisma.$transaction(async (tx) => {
+        const {
+            school_name, school_unique_id, school_address, school_lat, school_lng,
+            school_type, school_manager_id, school_email, school_phone,
+            school_region, school_city, school_district, education_level, curriculum,
+            school_logo
+        } = data;
 
-    let managerId = school_manager_id;
+        let managerId = school_manager_id;
 
-    if (!managerId) {
-        // ✅ Generate default password based on school name
-        const defaultPassword = `${school_name.replace(/\s+/g, "")}123456@`;
+        if (!managerId) {
+            // ✅ Generate default password based on school name
+            const defaultPassword = `${school_name.replace(/\s+/g, "")}123456@`;
+            const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-        // ✅ Call register function to create the school manager
-        const schoolManager = await register({
-            firstName: "School",
-            lastName: "Manager",
-            email: school_email,
-            password: defaultPassword,
-            roleIds: [5], // Assign "school_manager" role
-            bio: `Manager of ${school_name}`
+            // ✅ Create the School Manager first
+            const schoolManager = await tx.user.create({
+                data: {
+                    firstName: "School",
+                    lastName: "Manager",
+                    email: school_email,
+                    password: hashedPassword,
+                    statusId: 1, // Active
+                    roles: { create: [{ roleId: 5 }] },
+                    profile: { create: { bio: `Manager of ${school_name}` } }
+                }
+            });
+
+            managerId = schoolManager.id;
+        }
+
+        // ✅ Now create the School and connect it with the Manager
+        const newSchool = await tx.school.create({
+            data: {
+                school_unique_id,
+                school_name,
+                school_address,
+                school_lat,
+                school_lng,
+                school_type,
+                school_email,
+                school_phone,
+                school_region,
+                school_city,
+                school_district,
+                education_level,
+                curriculum,
+                school_logo,
+                school_manager_id: managerId // ✅ Correctly link manager to school
+            }
         });
 
-        managerId = schoolManager.data.id; // Extract user ID from response
-    }
-
-    // ✅ Create the school with the assigned manager ID
-    return prisma.school.create({
-        data: {
-            school_unique_id,
-            school_name,
-            school_address,
-            school_lat,
-            school_lng,
-            school_type,
-            school_manager_id: managerId,
-            school_email,
-            school_phone,
-            school_region,
-            school_city,
-            school_district,
-            education_level,
-            curriculum
-        }
+        return newSchool;
     });
 };
+
+
 const getAllSchools = async () => {
     return prisma.school.findMany({
         include: { manager: true },

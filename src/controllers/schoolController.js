@@ -7,7 +7,8 @@ const createSchool = async (req, res) => {
         const {
             school_name, school_unique_id, school_address, school_lat, school_lng,
             school_type, school_manager_id, school_email, school_phone,
-            school_region, school_city, school_district, education_level, curriculum
+            school_region, school_city, school_district, education_level, curriculum,
+            school_logo
         } = req.body;
 
         if (!school_name || !school_unique_id || !school_email || !school_phone) {

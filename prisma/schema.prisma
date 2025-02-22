@@ -15,7 +15,7 @@ model User {
   password  String  @db.VarChar(255)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  school_manager_id Int?   @unique 
   roles     UserAccessRoles[]
   profile   UserProfile?
   statusId  Int     @default(2) // Default to "Inactive"
@@ -73,6 +73,7 @@ model School {
   school_district  String?  @db.VarChar(50)
   education_level  EducationLevel
   curriculum       CurriculumType
+  school_logo      String?
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
