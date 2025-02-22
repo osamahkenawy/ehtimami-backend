@@ -96,8 +96,41 @@ const updateSchool = async (schoolId, updateData) => {
 };
 
 const deleteSchool = async (schoolId) => {
-    return prisma.school.delete({
-        where: { id: parseInt(schoolId) },
+    return await prisma.$transaction(async (tx) => {
+        // ✅ Find the school first
+        const school = await tx.school.findUnique({
+            where: { id: parseInt(schoolId) },
+            select: { school_manager_id: true }
+        });
+
+        if (!school) {
+            throw new Error("School not found.");
+        }
+
+        // ✅ Delete the school first
+        await tx.school.delete({
+            where: { id: parseInt(schoolId) }
+        });
+
+        // ✅ If there's a school manager, delete related records before deleting the manager
+        if (school.school_manager_id) {
+            // ❌ Delete user profile if it exists
+            await tx.userProfile.deleteMany({
+                where: { userId: school.school_manager_id }
+            });
+
+            // ❌ Delete user roles from UserAccessRoles
+            await tx.userAccessRoles.deleteMany({
+                where: { userId: school.school_manager_id }
+            });
+
+            // ❌ Delete the school manager
+            await tx.user.delete({
+                where: { id: school.school_manager_id }
+            });
+        }
+
+        return { message: "School, manager, roles, and profile deleted successfully." };
     });
 };
 
