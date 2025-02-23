@@ -89,6 +89,7 @@ enum SchoolType {
 }
 
 enum EducationLevel {
+  ALL
   PRIMARY
   INTERMEDIATE
   SECONDARY
