@@ -18,9 +18,8 @@ model User {
   school_manager_id Int?   @unique 
   roles     UserAccessRoles[]
   profile   UserProfile?
-  statusId  Int     @default(2) // Default to "Inactive"
+  statusId  Int     @default(2)
   status    UserStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
-
   // New relation to School
   managedSchool School?
 }
@@ -39,7 +38,7 @@ model UserAccessRoles {
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([userId, roleId]) // Composite primary key
+  @@id([userId, roleId])
 }
 
 model UserProfile {
@@ -55,6 +54,13 @@ model UserStatus {
   id   Int    @id @default(autoincrement())
   name String @unique @db.VarChar(50)
   users User[]
+}
+
+model SchoolStatus {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+  schools School[]  // This will hold the array of schools associated with this status
+
 }
 
 model School {
@@ -76,9 +82,11 @@ model School {
   school_logo      String?
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
+  statusId         Int
 
   // Foreign Key Relation to User
   manager          User @relation(fields: [school_manager_id], references: [id], onDelete: Cascade)
+  status           SchoolStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
 }
 
 enum SchoolType {
