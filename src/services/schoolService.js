@@ -23,7 +23,7 @@ const createSchool = async (data) => {
             school_name, school_unique_id, school_address, school_lat, school_lng,
             school_type, school_manager_id, school_email, school_phone,
             school_region, school_city, school_district, education_level, curriculum,
-            school_logo
+            school_logo, statusId = 1 
         } = data;
 
         let managerId = school_manager_id;
@@ -66,7 +66,8 @@ const createSchool = async (data) => {
                 education_level,
                 curriculum,
                 school_logo,
-                school_manager_id: managerId // ✅ Correctly link manager to school
+                school_manager_id: managerId, // ✅ Correctly link manager to school
+                statusId
             }
         });
 

@@ -34,7 +34,18 @@ async function main() {
             create: status,
         });
     }
-
+   // Seed school statuses
+   const schoolStatuses = [
+    { id: 1, name: "Active" },
+    { id: 2, name: "Inactive" }
+];
+for (const status of schoolStatuses) {
+    await prisma.schoolStatus.upsert({
+        where: { id: status.id },
+        update: {},
+        create: status,
+    });
+}
     console.log("✅ Roles & User Statuses seeded successfully.");
 
     // ✅ Seed a School Manager User
@@ -86,7 +97,8 @@ async function main() {
                 school_city: "Riyadh",
                 school_district: "Al Olaya",
                 education_level: "PRIMARY",
-                curriculum: "SAUDI_NATIONAL"
+                curriculum: "SAUDI_NATIONAL",
+                statusId: 1 // Active status
             }
         });
 
