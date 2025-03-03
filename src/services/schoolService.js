@@ -98,7 +98,7 @@ const updateSchool = async (schoolId, updateData) => {
 
 const deleteSchool = async (schoolId) => {
     return await prisma.$transaction(async (tx) => {
-        // ✅ Find the school first
+        // Check if the school exists
         const school = await tx.school.findUnique({
             where: { id: parseInt(schoolId) },
             select: { school_manager_id: true }
@@ -108,32 +108,42 @@ const deleteSchool = async (schoolId) => {
             throw new Error("School not found.");
         }
 
-        // ✅ Delete the school first
+        // Check if there are any classes associated with this school
+        const classes = await tx.class.findMany({
+            where: { schoolId: parseInt(schoolId) }
+        });
+
+        if (classes.length > 0) {
+            throw new Error("Cannot delete school because there are classes associated with it. Please delete all classes first.");
+        }
+
+        // Proceed to delete the school if no classes are associated
         await tx.school.delete({
             where: { id: parseInt(schoolId) }
         });
 
-        // ✅ If there's a school manager, delete related records before deleting the manager
+        // If there's a school manager, delete related records before deleting the manager
         if (school.school_manager_id) {
-            // ❌ Delete user profile if it exists
+            // Delete user profile if it exists
             await tx.userProfile.deleteMany({
                 where: { userId: school.school_manager_id }
             });
 
-            // ❌ Delete user roles from UserAccessRoles
+            // Delete user roles from UserAccessRoles
             await tx.userAccessRoles.deleteMany({
                 where: { userId: school.school_manager_id }
             });
 
-            // ❌ Delete the school manager
+            // Delete the school manager
             await tx.user.delete({
                 where: { id: school.school_manager_id }
             });
         }
 
-        return { message: "School, manager, roles, and profile deleted successfully." };
+        return { message: "School and all related records deleted successfully." };
     });
 };
+
 
 module.exports = {
     createSchool,
