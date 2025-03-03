@@ -22,6 +22,7 @@ model User {
   status    UserStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
   // New relation to School
   managedSchool School?
+  classes        Class[]   // Relation to classes they are teachin
 }
 
 model Role {
@@ -87,6 +88,7 @@ model School {
   // Foreign Key Relation to User
   manager          User @relation(fields: [school_manager_id], references: [id], onDelete: Cascade)
   status           SchoolStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  classes          Class[]  // Relation to classes offered by the school
 }
 
 enum SchoolType {
@@ -95,6 +97,24 @@ enum SchoolType {
   INTERNATIONAL
   SPECIAL_NEEDS
 }
+model Class {
+  id         Int      @id @default(autoincrement())
+  name       String
+  gradeLevel String
+  capacity   Int      // Maximum number of students
+  teacherId  Int?
+  teacher    User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  roomNumber String?
+  status     String   @default("active")
+  schedule   Json
+  startDate  DateTime
+  endDate    DateTime
+  schoolId   Int
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 
 enum EducationLevel {
   ALL
