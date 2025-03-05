@@ -161,7 +161,7 @@ const updateClass = async (classId, updateData) => {
  */
 const deleteClass = async (classId) => {
     return await prisma.class.delete({
-        where: { id: classId }
+        where: { id: Number(classId) }, // ✅ Ensure ID is a number
     });
 };
 
