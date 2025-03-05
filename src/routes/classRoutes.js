@@ -11,9 +11,10 @@ const {
 } = require('@/controllers/classController');
 
 const { checkSchoolExists, checkTeacherExists } = require('@/middlewares/schoolAndTeacherMiddleware');
+const { validateClassUpdate, validateClassCreate } = require("@/validators/classValidator");
 
-// ✅ Create a new class (Teacher is Optional at Creation)
-router.post('/create-new-class', checkSchoolExists, createNewClass);
+// ✅ Create a new class with validation (Teacher is Optional at Creation)
+router.post('/create-new-class', validateClassCreate, checkSchoolExists, createNewClass);
 
 // ✅ Assign a teacher to a class
 router.post('/assign-teacher', checkTeacherExists, assignTeacherToClass);
@@ -25,7 +26,7 @@ router.get('/', getAllClasses);
 router.get('/:id', getClassById);
 
 // ✅ Update a class by ID
-router.put('/:id', checkSchoolExists, updateClass);
+router.put('/:id', validateClassUpdate, updateClass);
 
 // ✅ Delete a class by ID
 router.delete('/:id', deleteClass);
