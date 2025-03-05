@@ -118,16 +118,14 @@ model Class {
   roomNumber String?
   status     String   @default("active")
   schedule   Json
-  startDate  DateTime
-  endDate    DateTime
+  startDate  DateTime @default(now())
+  endDate    DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  // ✅ Each class belongs to a school
   schoolId   Int
   school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  // ✅ Each class has a teacher (optional at first, assign later)
   teacherId  Int?
   teacher    User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 }
