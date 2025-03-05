@@ -4,26 +4,33 @@ const {
     createNewClass,
     getAllClasses,
     getClassById,
+    getClassesBySchoolId,
     updateClass,
     deleteClass,
-    getClassesBySchoolId
+    assignTeacherToClass
 } = require('@/controllers/classController');
+
 const { checkSchoolExists, checkTeacherExists } = require('@/middlewares/schoolAndTeacherMiddleware');
 
-// Route to create a new class after checking school and teacher existence
-router.post('/create-new-class', checkSchoolExists, checkTeacherExists, createNewClass);
+// ✅ Create a new class (Teacher is Optional at Creation)
+router.post('/create-new-class', checkSchoolExists, createNewClass);
 
-// Route to retrieve all classes
+// ✅ Assign a teacher to a class
+router.post('/assign-teacher', checkTeacherExists, assignTeacherToClass);
+
+// ✅ Get all classes
 router.get('/', getAllClasses);
 
-// Route to retrieve a class by ID
+// ✅ Get a class by ID
 router.get('/:id', getClassById);
 
-// Route to update a class by ID
-router.put('/:id', checkSchoolExists, checkTeacherExists, updateClass);
+// ✅ Update a class by ID
+router.put('/:id', checkSchoolExists, updateClass);
 
-// Route to delete a class by ID
+// ✅ Delete a class by ID
 router.delete('/:id', deleteClass);
 
+// ✅ Get all classes by school ID
 router.get('/school/:schoolId', getClassesBySchoolId);
+
 module.exports = router;
