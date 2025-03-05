@@ -15,14 +15,21 @@ model User {
   password  String  @db.VarChar(255)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  school_manager_id Int?   @unique 
+  statusId  Int     @default(2)
+
+  status    UserStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
   roles     UserAccessRoles[]
   profile   UserProfile?
-  statusId  Int     @default(2)
-  status    UserStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
-  // New relation to School
-  managedSchool School?
-  classes        Class[]   // Relation to classes they are teachin
+
+  // ✅ Relation: Teacher/Student belongs to a school
+  schoolId  Int?
+  school    School? @relation("UserSchool", fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // ✅ One user can manage a school (Relation is defined in `School`)
+  managedSchool School? @relation("ManagedSchool")
+
+  // ✅ Teachers can be assigned to multiple classes
+  classes        Class[]  
 }
 
 model Role {
@@ -60,8 +67,7 @@ model UserStatus {
 model SchoolStatus {
   id   Int    @id @default(autoincrement())
   name String @unique @db.VarChar(50)
-  schools School[]  // This will hold the array of schools associated with this status
-
+  schools School[]  
 }
 
 model School {
@@ -72,7 +78,6 @@ model School {
   school_lat       Float?
   school_lng       Float?
   school_type      SchoolType
-  school_manager_id Int     @unique
   school_email     String   @unique @db.VarChar(100)
   school_phone     String   @unique @db.VarChar(20)
   school_region    String   @db.VarChar(50)
@@ -85,10 +90,17 @@ model School {
   updated_at       DateTime @updatedAt
   statusId         Int
 
-  // Foreign Key Relation to User
-  manager          User @relation(fields: [school_manager_id], references: [id], onDelete: Cascade)
+  // ✅ Each school has one manager (Define relation here)
+  school_manager_id Int     @unique
+  manager           User @relation("ManagedSchool", fields: [school_manager_id], references: [id], onDelete: Cascade)
+
   status           SchoolStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
-  classes          Class[]  // Relation to classes offered by the school
+
+  // ✅ Each school has multiple teachers and students
+  users User[] @relation("UserSchool")
+
+  // ✅ Each school has multiple classes
+  classes          Class[]  
 }
 
 enum SchoolType {
@@ -97,24 +109,28 @@ enum SchoolType {
   INTERNATIONAL
   SPECIAL_NEEDS
 }
+
 model Class {
   id         Int      @id @default(autoincrement())
   name       String
   gradeLevel String
-  capacity   Int      // Maximum number of students
-  teacherId  Int?
-  teacher    User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  capacity   Int      
   roomNumber String?
   status     String   @default("active")
   schedule   Json
   startDate  DateTime
   endDate    DateTime
-  schoolId   Int
-  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-}
 
+  // ✅ Each class belongs to a school
+  schoolId   Int
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // ✅ Each class has a teacher (optional at first, assign later)
+  teacherId  Int?
+  teacher    User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+}
 
 enum EducationLevel {
   ALL
