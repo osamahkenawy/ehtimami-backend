@@ -45,23 +45,26 @@ const createClass = async (data) => {
             }
         }
 
-        // ✅ Create the class
+        // ✅ Create the class (Fix `teacherId` issue)
         return await tx.class.create({
             data: {
                 name,
                 gradeLevel,
-                capacity,
-                teacherId: assignedTeacher ? teacherId : null, // ✅ Assign teacher if valid
-                roomNumber,
+                capacity: capacity ? capacity : 0,
+                teacher: assignedTeacher ? { connect: { id: teacherId } } : undefined, // ✅ Corrected relation
+                roomNumber:  roomNumber ? roomNumber : "",
                 schedule,
-                startDate,
-                endDate,
-                schoolId,
-                status: "active"
+                startDate: startDate ? new Date(startDate) : new Date(), // ✅ Convert to Date
+                endDate: endDate ? new Date(endDate) : new Date(), // ✅ Convert to Date
+                school: {
+                    connect: { id: schoolId }, // ✅ Connect to school
+                },
+                status: "active",
             }
         });
     });
 };
+
 
 /**
  * Assign a teacher to an existing class.
