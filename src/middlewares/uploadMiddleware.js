@@ -9,7 +9,7 @@ const upload = multer({
   storage: multerS3({
     s3: s3Client,
     bucket: bucketName,
-    contentType: multerS3.AUTO_CONTENT_TYPE, // Auto-detect content type
+    contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
     },
@@ -18,7 +18,7 @@ const upload = multer({
       cb(null, fileName);
     },
   }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // Limit file size to 10MB
+  limits: { fileSize: 50 * 1024 * 1024 }, // ✅ Increased limit to 50MB
 });
 
 module.exports = upload;

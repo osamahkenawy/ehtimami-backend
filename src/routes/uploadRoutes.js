@@ -1,13 +1,11 @@
 const express = require("express");
-const upload = require("@/middlewares/uploadMiddleware");
-const { uploadFile } = require("@/controllers/uploadController");
+const uploadFileController = require("@/controllers/uploadController");
 
 const router = express.Router();
 
+// ✅ Debugging Middleware
 router.post("/upload", (req, res, next) => {
-    next();
-  }, upload.single("file"), (req, res, next) => {
-    next();
-  }, uploadFile);
-  
+  next();
+}, uploadFileController.uploadFile);
+
 module.exports = router;
