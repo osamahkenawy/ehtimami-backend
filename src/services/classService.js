@@ -9,7 +9,7 @@ const createClass = async (data) => {
     return await prisma.$transaction(async (tx) => {
         const {
             name, gradeLevel, capacity, teacherId, roomNumber, schedule,
-            startDate, endDate, schoolId
+            startDate, endDate, schoolId, class_logo
         } = data;
 
         // ✅ Ensure the school exists
@@ -56,6 +56,7 @@ const createClass = async (data) => {
                 schedule,
                 startDate: startDate ? new Date(startDate) : new Date(), // ✅ Convert to Date
                 endDate: endDate ? new Date(endDate) : new Date(), // ✅ Convert to Date
+                class_logo: class_logo || null, // ✅ Optional class logo
                 school: {
                     connect: { id: schoolId }, // ✅ Connect to school
                 },
