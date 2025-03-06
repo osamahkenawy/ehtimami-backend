@@ -7,6 +7,8 @@ const schoolRoutes = require("@routes/schoolRoutes");
 const userRoutes = require("@routes/userRoutes");
 const dashboardRoutes = require("@routes/dashboardRoutes");
 const classRoutes = require("@routes/classRoutes");
+const uploadRoutes = require("@routes/uploadRoutes");
+
 const app = express();
 app.use(express.json());
 // ✅ Allow CORS for all routes
@@ -15,12 +17,14 @@ app.use(cors({
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 // Use Auth Routes
 app.use("/auth", authRoutes); // ✅ auth routes
 app.use("/schools", schoolRoutes);  // ✅ school routes
 app.use("/users", userRoutes);  // ✅ user Routes
 app.use("/dashboards",dashboardRoutes) // ✅ Dashboard Routes
 app.use("/classes",classRoutes) // ✅ Class Routes
+app.use("/api", uploadRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
