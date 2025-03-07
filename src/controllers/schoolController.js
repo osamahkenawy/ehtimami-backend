@@ -4,23 +4,25 @@ const schoolService = require("@/services/schoolService");
 // ✅ Create a new school
 const createSchool = async (req, res) => {
     try {
-        const {
-            school_name, school_unique_id, school_address, school_lat, school_lng,
-            school_type, school_manager_id, school_email, school_phone,
-            school_region, school_city, school_district, education_level, curriculum,
-            school_logo
-        } = req.body;
+        const { school_name, school_unique_id, school_email, school_phone } = req.body;
 
         if (!school_name || !school_unique_id || !school_email || !school_phone) {
             return errorResponse(res, "Missing required fields.");
         }
 
-        const newSchool = await schoolService.createSchool(req.body);
-        return successResponse(res, "School created successfully.", newSchool, 201);
+        const result = await schoolService.createSchool(req.body);
+
+        if (result.error) {
+            return errorResponse(res, result.error);
+        }
+
+        return successResponse(res, "School created successfully.", result.data, 201);
     } catch (error) {
+        console.error("Controller Error:", error);
         return errorResponse(res, error.message || "Failed to create school.");
     }
 };
+
 
 // ✅ Get all schools
 const getAllSchools = async (req, res) => {
