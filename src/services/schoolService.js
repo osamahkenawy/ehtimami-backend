@@ -54,7 +54,7 @@ const createSchool = async (data) => {
                         email: validatedData.data.school_email,
                         password: hashedPassword,
                         statusId: 1, // Active
-                        roles: { create: [{ roleId: 5 }] }, // Assign school manager role
+                        roles: { create: [{ roleId: 5 }] }, // Assign school_manager role
                         profile: { create: { bio: `Manager of ${validatedData.data.school_name}` } }
                     }
                 });
@@ -84,6 +84,12 @@ const createSchool = async (data) => {
                 }
             });
 
+            // ✅ Update the school manager with the correct `schoolId`
+            await tx.user.update({
+                where: { id: managerId },
+                data: { schoolId: newSchool.id } // ✅ Assign schoolId to manager
+            });
+
             return { success: true, data: newSchool };
         });
     } catch (error) {
@@ -91,7 +97,6 @@ const createSchool = async (data) => {
         return { error: "An unexpected error occurred. Please try again." };
     }
 };
-
 
 
 
