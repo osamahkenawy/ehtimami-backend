@@ -2,8 +2,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { JWT_SECRET } = require("@config/config");
 
-// Hash password
-
+// ✅ Hash password
 const hashPassword = async (password) => {
     console.log("🔍 Debug Password:", password);
 
@@ -15,19 +14,20 @@ const hashPassword = async (password) => {
     return await bcrypt.hash(password, salt);
 };
 
-module.exports = {
-    hashPassword
-};
-
-// Compare password
+// ✅ Compare password
 const comparePassword = async (password, hash) => {
     return await bcrypt.compare(password, hash);
 };
 
-// Generate JWT Token
+// ✅ Generate JWT Token (Now Includes `profileId`)
 const generateToken = (user) => {
     return jwt.sign(
-        { id: user.id, email: user.email, roles: user.roles.map(r => r.role.name) },
+        {
+            id: user.id, // ✅ User ID
+            profileId: user.profile ? user.profile.id : null, // ✅ Profile ID (If exists)
+            email: user.email,
+            roles: user.roles.map(r => r.role.name),
+        },
         JWT_SECRET,
         { expiresIn: "7d" }
     );

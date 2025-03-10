@@ -1,7 +1,7 @@
 const express = require("express");
 const { createSchool, getAllSchools, getSchoolById, updateSchool, deleteSchool } = require("@controllers/schoolController");
 const { authenticate } = require("@middlewares/authMiddleware");
-const checkSchoolExists = require("@middlewares/checkSchoolExists");
+const {checkSchoolExists} = require("@middlewares/checkSchoolExists");
 
 const router = express.Router();
 

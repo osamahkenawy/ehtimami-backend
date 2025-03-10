@@ -8,33 +8,34 @@ datasource db {
 }
 
 model User {
-  id        Int     @id @default(autoincrement())
-  firstName String  @db.VarChar(50)
-  lastName  String  @db.VarChar(50)
-  email     String  @unique @db.VarChar(100)
-  password  String  @db.VarChar(255)
+  id        Int      @id @default(autoincrement())
+  firstName String   @db.VarChar(50)
+  lastName  String   @db.VarChar(50)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  statusId  Int     @default(2)
+  statusId  Int      @default(2)
 
-  status    UserStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
-  roles     UserAccessRoles[]
-  profile   UserProfile?
+  status  UserStatus        @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  roles   UserAccessRoles[]
+  profile UserProfile?
 
   // ✅ Relation: Teacher/Student belongs to a school
-  schoolId  Int?
-  school    School? @relation("UserSchool", fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId Int?
+  school   School? @relation("UserSchool", fields: [schoolId], references: [id], onDelete: Cascade)
 
   // ✅ One user can manage a school (Relation is defined in `School`)
   managedSchool School? @relation("ManagedSchool")
 
   // ✅ Teachers can be assigned to multiple classes
-  classes        Class[]  
+  classes        Class[]
+  teacherClasses ClassTeacher[]
 }
 
 model Role {
-  id    Int    @id @default(autoincrement())
-  name  String @unique @db.VarChar(50)
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
 
   users UserAccessRoles[]
 }
@@ -43,64 +44,78 @@ model UserAccessRoles {
   userId Int
   roleId Int
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
 }
 
 model UserProfile {
-  id      Int     @id @default(autoincrement())
-  userId  Int     @unique
-  bio     String? @db.Text
-  avatar  String? @db.VarChar(255)
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  bio             String?  @db.Text
+  avatar          String?  @db.VarChar(255)
+  marital_status  MaritalStatus @default(SINGLE) // ✅ Default value
+  nationality     String   @db.VarChar(100) @default("Unknown") // ✅ Default value
+  birth_date      DateTime? // ✅ Make it optional
+  join_date       DateTime @default(now()) // ✅ Defaults to current date
+  gender          Int      @default(1) // 1 = Male, 2 = Female, 3 = Other
+  address         String?  @db.Text
+  latitude        Float?
+  longitude       Float?
 
-  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
 }
 
 model UserStatus {
-  id   Int    @id @default(autoincrement())
-  name String @unique @db.VarChar(50)
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(50)
   users User[]
 }
 
 model SchoolStatus {
-  id   Int    @id @default(autoincrement())
-  name String @unique @db.VarChar(50)
-  schools School[]  
+  id      Int      @id @default(autoincrement())
+  name    String   @unique @db.VarChar(50)
+  schools School[]
 }
 
 model School {
-  id               Int      @id @default(autoincrement())
-  school_unique_id String   @unique
-  school_name      String   @db.VarChar(100)
-  school_address   String   @db.Text
+  id               Int            @id @default(autoincrement())
+  school_unique_id String         @unique
+  school_name      String         @db.VarChar(100)
+  school_address   String         @db.Text
   school_lat       Float?
   school_lng       Float?
   school_type      SchoolType
-  school_email     String   @unique @db.VarChar(100)
-  school_phone     String   @unique @db.VarChar(20)
-  school_region    String   @db.VarChar(50)
-  school_city      String   @db.VarChar(50)
-  school_district  String?  @db.VarChar(50)
+  school_email     String         @unique @db.VarChar(100)
+  school_phone     String         @unique @db.VarChar(20)
+  school_region    String         @db.VarChar(50)
+  school_city      String         @db.VarChar(50)
+  school_district  String?        @db.VarChar(50)
   education_level  EducationLevel
   curriculum       CurriculumType
   school_logo      String?
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
   statusId         Int
 
   // ✅ Each school has one manager (Define relation here)
-  school_manager_id Int     @unique
+  school_manager_id Int  @unique
   manager           User @relation("ManagedSchool", fields: [school_manager_id], references: [id], onDelete: Cascade)
 
-  status           SchoolStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  status SchoolStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
 
   // ✅ Each school has multiple teachers and students
   users User[] @relation("UserSchool")
 
   // ✅ Each school has multiple classes
-  classes          Class[]  
+  classes Class[]
 }
 
 enum SchoolType {
@@ -111,22 +126,33 @@ enum SchoolType {
 }
 
 model Class {
-  id         Int      @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   name       String
   gradeLevel String
-  capacity   Int      
+  capacity   Int
   roomNumber String?
-  status     String   @default("active")
+  status     String         @default("active")
   schedule   Json
-  startDate  DateTime @default(now())
-  endDate    DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  startDate  DateTime       @default(now())
+  endDate    DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
   schoolId   Int
-  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school     School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   teacherId  Int?
-  teacher    User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  class_logo String?  @db.VarChar(255) // ✅ New optional field for class logo
+  teacher    User?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  class_logo String?        @db.VarChar(255) // ✅ New optional field for class logo
+  teachers   ClassTeacher[]
+}
+
+model ClassTeacher {
+  teacherId Int
+  classId   Int
+
+  teacher User  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@id([teacherId, classId]) // Composite primary key
 }
 
 enum EducationLevel {

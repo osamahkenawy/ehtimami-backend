@@ -8,7 +8,7 @@ const userRoutes = require("@routes/userRoutes");
 const dashboardRoutes = require("@routes/dashboardRoutes");
 const classRoutes = require("@routes/classRoutes");
 const uploadRoutes = require("@routes/uploadRoutes");
-
+const teacherRoutes = require("@routes/teacherRoutes");
 const app = express();
 
 // ✅ Increase request body size limit
@@ -28,6 +28,7 @@ app.use("/users", userRoutes);  // ✅ user Routes
 app.use("/dashboards",dashboardRoutes) // ✅ Dashboard Routes
 app.use("/classes",classRoutes) // ✅ Class Routes
 app.use("/api", uploadRoutes);
+app.use("/teacher",teacherRoutes); // ✅ Teacher Routes
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);

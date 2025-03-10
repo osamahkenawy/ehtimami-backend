@@ -31,4 +31,30 @@ const checkSchoolExists = async (req, res, next) => {
     }
 };
 
-module.exports = checkSchoolExists;
+const checkSchoolExistsById = async (req, res, next) => {
+    try {
+        const { schoolId } = req.body;
+
+        if (!schoolId || isNaN(schoolId)) {
+            return errorResponse(res, "Invalid or missing school ID.");
+        }
+
+        // 🔍 Check if the school exists
+        const school = await prisma.school.findUnique({ where: { id: parseInt(schoolId) } });
+
+        if (!school) {
+            return errorResponse(res, "School not found.");
+        }
+
+        // ✅ Attach school data to request object
+        req.school = school;
+        next(); // Proceed to the next middleware or controller
+    } catch (error) {
+        return errorResponse(res, "An unexpected error occurred while validating the school.");
+    }
+};
+
+module.exports = {
+    checkSchoolExists,
+    checkSchoolExistsById
+};
