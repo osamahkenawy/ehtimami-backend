@@ -8,29 +8,68 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  firstName String   @db.VarChar(50)
-  lastName  String   @db.VarChar(50)
-  email     String   @unique @db.VarChar(100)
-  password  String   @db.VarChar(255)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  statusId  Int      @default(2)
+  id                  Int        @id @default(autoincrement())
+  firstName           String     @db.VarChar(50)
+  lastName            String     @db.VarChar(50)
+  username            String?    @unique @db.VarChar(50)
+  email               String     @unique @db.VarChar(100)
+  phone               String?    @unique @db.VarChar(20)
+  password            String     @db.VarChar(255)
+  is_verified         Boolean    @default(false)
+  verification_token  String?    @db.VarChar(255)
+  reset_token         String?    @db.VarChar(255)
+  reset_token_expires DateTime?
+  two_factor_enabled  Boolean    @default(false)
+  two_factor_secret   String?    @db.VarChar(255)
+  status              UserStatus @default(ACTIVE)
+  parentId            Int? // ✅ Parent-child relationship
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
-  status  UserStatus        @relation(fields: [statusId], references: [id], onDelete: Restrict)
-  roles   UserAccessRoles[]
   profile UserProfile?
 
-  // ✅ Relation: Teacher/Student belongs to a school
-  schoolId Int?
-  school   School? @relation("UserSchool", fields: [schoolId], references: [id], onDelete: Cascade)
-
-  // ✅ One user can manage a school (Relation is defined in `School`)
-  managedSchool School? @relation("ManagedSchool")
-
-  // ✅ Teachers can be assigned to multiple classes
-  classes        Class[]
+  schools        UserSchool[]
+  roles          UserAccessRoles[]
   teacherClasses ClassTeacher[]
+
+  parent         User?         @relation("ParentChild", fields: [parentId], references: [id], onDelete: SetNull)
+  children       User[]        @relation("ParentChild")
+  // ✅ Added relation for SchoolAdmin (Fixes the error)
+  managedSchools SchoolAdmin[]
+}
+
+model UserProfile {
+  id                 Int           @id @default(autoincrement())
+  userId             Int           @unique
+  bio                String?       @db.Text
+  avatar             String?       @db.VarChar(255)
+  profile_banner     String?       @db.VarChar(255)
+  middleName         String?       @db.VarChar(50)
+  nickname           String?       @db.VarChar(50)
+  occupation         String?       @db.VarChar(100)
+  company            String?       @db.VarChar(100)
+  website            String?       @db.VarChar(255)
+  social_links       Json?
+  preferences        Json?
+  interests          Json?
+  marital_status     MaritalStatus @default(SINGLE)
+  nationality        String        @default("Unknown") @db.VarChar(100)
+  birth_date         DateTime?
+  join_date          DateTime      @default(now())
+  gender             Int           @default(1) // 1 = Male, 2 = Female, 3 = Other
+  address            String?       @db.Text
+  latitude           Float?
+  longitude          Float?
+  emergency_contacts Json? // ✅ New: Emergency contact list
+  profile_visibility String        @default("public") // ✅ public, private, school-only
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
 }
 
 model Role {
@@ -50,39 +89,22 @@ model UserAccessRoles {
   @@id([userId, roleId])
 }
 
-model UserProfile {
-  id              Int      @id @default(autoincrement())
-  userId          Int      @unique
-  bio             String?  @db.Text
-  avatar          String?  @db.VarChar(255)
-  marital_status  MaritalStatus @default(SINGLE) // ✅ Default value
-  nationality     String   @db.VarChar(100) @default("Unknown") // ✅ Default value
-  birth_date      DateTime? // ✅ Make it optional
-  join_date       DateTime @default(now()) // ✅ Defaults to current date
-  gender          Int      @default(1) // 1 = Male, 2 = Female, 3 = Other
-  address         String?  @db.Text
-  latitude        Float?
-  longitude       Float?
+model UserSchool {
+  userId   Int
+  schoolId Int
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([userId, schoolId])
 }
 
-enum MaritalStatus {
-  SINGLE
-  MARRIED
-  DIVORCED
-}
-
-model UserStatus {
-  id    Int    @id @default(autoincrement())
-  name  String @unique @db.VarChar(50)
-  users User[]
-}
-
-model SchoolStatus {
-  id      Int      @id @default(autoincrement())
-  name    String   @unique @db.VarChar(50)
-  schools School[]
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+  SUSPENDED
+  PENDING_APPROVAL
 }
 
 model School {
@@ -95,27 +117,34 @@ model School {
   school_type      SchoolType
   school_email     String         @unique @db.VarChar(100)
   school_phone     String         @unique @db.VarChar(20)
-  school_region    String         @db.VarChar(50)
-  school_city      String         @db.VarChar(50)
+  school_region    String?         @db.VarChar(50)
+  school_city      String?         @db.VarChar(50)
   school_district  String?        @db.VarChar(50)
   education_level  EducationLevel
   curriculum       CurriculumType
   school_logo      String?
   created_at       DateTime       @default(now())
   updated_at       DateTime       @updatedAt
-  statusId         Int
+  status           SchoolStatus   @default(ACTIVE)
 
-  // ✅ Each school has one manager (Define relation here)
-  school_manager_id Int  @unique
-  manager           User @relation("ManagedSchool", fields: [school_manager_id], references: [id], onDelete: Cascade)
-
-  status SchoolStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
-
-  // ✅ Each school has multiple teachers and students
-  users User[] @relation("UserSchool")
-
-  // ✅ Each school has multiple classes
+  users   UserSchool[]
   classes Class[]
+  admins  SchoolAdmin[] // ✅ New: Allows multiple admins
+}
+
+model SchoolAdmin {
+  id       Int    @id @default(autoincrement())
+  userId   Int    @unique
+  schoolId Int
+  role     String @default("admin")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+enum SchoolStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum SchoolType {
@@ -126,23 +155,34 @@ enum SchoolType {
 }
 
 model Class {
-  id         Int            @id @default(autoincrement())
-  name       String
-  gradeLevel String
-  capacity   Int
-  roomNumber String?
-  status     String         @default("active")
-  schedule   Json
-  startDate  DateTime       @default(now())
-  endDate    DateTime       @default(now())
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  schoolId   Int
-  school     School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  teacherId  Int?
-  teacher    User?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  class_logo String?        @db.VarChar(255) // ✅ New optional field for class logo
-  teachers   ClassTeacher[]
+  id              Int      @id @default(autoincrement())
+  code            String   @unique  // ✅ Ensure this is marked as unique
+  name            String
+  description     String?  @db.Text
+  gradeLevel      String?
+  section         String? // ✅ New: Section name
+  subject         String   @default("General") @db.VarChar(100)
+  semester        Int      @default(1)
+  academic_year   String   @default("2024-2025") @db.VarChar(20)
+  teaching_method String   @default("in-person") // ✅ online, in-person, hybrid
+  capacity        Int?
+  max_students    Int      @default(30)
+  roomNumber      String?
+  class_logo      String?  @db.VarChar(255)
+  status          String   @default("active")
+  days_of_week    Json?
+  start_time      String   @default("08:00:00") @db.VarChar(10)
+  end_time        String   @default("10:00:00") @db.VarChar(10)
+schedule        Json?
+  credits         Int?
+  startDate       DateTime @default(now())
+  endDate         DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  schoolId        Int
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  teachers ClassTeacher[]
 }
 
 model ClassTeacher {
@@ -152,7 +192,7 @@ model ClassTeacher {
   teacher User  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
 
-  @@id([teacherId, classId]) // Composite primary key
+  @@id([teacherId, classId])
 }
 
 enum EducationLevel {
