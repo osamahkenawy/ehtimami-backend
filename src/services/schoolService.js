@@ -1,11 +1,10 @@
 const { PrismaClient } = require("@prisma/client");
-const { errorResponse, successResponse } = require("@/utils/responseUtil.js"); // Import response utilities
 const bcrypt = require("bcrypt");
-
-const { z } = require("zod"); // Import Zod
+const { z } = require("zod");
 
 const prisma = new PrismaClient();
 
+// ✅ Define School Schema Validation (Zod)
 const schoolSchema = z.object({
     school_name: z.string().min(2, "School name must be at least 2 characters long"),
     school_unique_id: z.string().min(3, "Unique ID must be at least 3 characters long"),
@@ -15,23 +14,22 @@ const schoolSchema = z.object({
     school_type: z.enum(["PRIVATE", "PUBLIC", "INTERNATIONAL", "SPECIAL_NEEDS"]),
     school_email: z.string().email("Invalid email format"),
     school_phone: z.string().optional(),
-    school_region: z.string().min(2, "Region is required"),
-    school_city: z.string().min(2, "City is required"),
+    school_region: z.string().min(2, "Region is required").optional(),
+    school_city: z.string().min(2, "City is required").optional(),
     school_district: z.string().optional(),
-    education_level: z.enum(["ALL", "PRIMARY", "INTERMEDIATE", "SECONDARY", "KINDERGARTEN"]),
-    curriculum: z.enum(["SAUDI_NATIONAL", "IB", "AMERICAN", "BRITISH", "FRENCH", "OTHER"]),
+    education_level: z.enum(["ALL", "PRIMARY", "INTERMEDIATE", "SECONDARY", "KINDERGARTEN"]).optional(),
+    curriculum: z.enum(["SAUDI_NATIONAL", "IB", "AMERICAN", "BRITISH", "FRENCH", "OTHER"]).optional(),
     school_logo: z.string().url("Invalid URL").optional(),
     school_manager_id: z.number().optional(),
-    statusId: z.number().default(1),
+    status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
 
-
 /**
- * Create school and school manager
+ * ✅ Create a school and assign a manager
  */
 const createSchool = async (data) => {
     try {
-        // ✅ Validate input using Zod
+        // ✅ Validate input
         const validatedData = schoolSchema.safeParse(data);
 
         if (!validatedData.success) {
@@ -42,7 +40,7 @@ const createSchool = async (data) => {
         return await prisma.$transaction(async (tx) => {
             let managerId = validatedData.data.school_manager_id;
 
-            // ✅ If no manager is provided, create a new school manager
+            // ✅ If no manager is provided, create a new one
             if (!managerId) {
                 const defaultPassword = `${validatedData.data.school_name.replace(/\s+/g, "")}123456@`;
                 const hashedPassword = await bcrypt.hash(defaultPassword, 10);
@@ -53,8 +51,9 @@ const createSchool = async (data) => {
                         lastName: "Manager",
                         email: validatedData.data.school_email,
                         password: hashedPassword,
-                        statusId: 1, // Active
-                        roles: { create: [{ roleId: 5 }] }, // Assign school_manager role
+                        is_verified: true,
+                        status: "ACTIVE",
+                        roles: { create: [{ role: { connect: { name: "school_manager" } } }] },
                         profile: { create: { bio: `Manager of ${validatedData.data.school_name}` } }
                     }
                 });
@@ -62,7 +61,7 @@ const createSchool = async (data) => {
                 managerId = schoolManager.id;
             }
 
-            // ✅ Now create the School and connect it with the Manager
+            // ✅ Create the school
             const newSchool = await tx.school.create({
                 data: {
                     school_unique_id: validatedData.data.school_unique_id,
@@ -79,40 +78,53 @@ const createSchool = async (data) => {
                     education_level: validatedData.data.education_level,
                     curriculum: validatedData.data.curriculum,
                     school_logo: validatedData.data.school_logo,
-                    school_manager_id: managerId, // ✅ Correctly link manager to school
-                    statusId: validatedData.data.statusId,
+                    status: validatedData.data.status,
                 }
             });
 
-            // ✅ Update the school manager with the correct `schoolId`
-            await tx.user.update({
-                where: { id: managerId },
-                data: { schoolId: newSchool.id } // ✅ Assign schoolId to manager
+            // ✅ Assign school manager
+            await tx.schoolAdmin.create({
+                data: {
+                    userId: managerId,
+                    schoolId: newSchool.id,
+                    role: "admin"
+                }
             });
 
             return { success: true, data: newSchool };
         });
     } catch (error) {
-        console.error("Error creating school:", error);
+        console.error("❌ Error creating school:", error);
         return { error: "An unexpected error occurred. Please try again." };
     }
 };
 
-
-
+/**
+ * ✅ Get all schools
+ */
 const getAllSchools = async () => {
     return prisma.school.findMany({
-        include: { manager: true },
+        include: {
+            admins: { include: { user: true } },
+        },
     });
 };
 
+/**
+ * ✅ Get school by ID
+ */
 const getSchoolById = async (schoolId) => {
     return prisma.school.findUnique({
         where: { id: parseInt(schoolId) },
-        include: { manager: true },
+        include: {
+            admins: { include: { user: true } },
+        },
     });
 };
 
+/**
+ * ✅ Update school
+ */
 const updateSchool = async (schoolId, updateData) => {
     return prisma.school.update({
         where: { id: parseInt(schoolId) },
@@ -120,12 +132,15 @@ const updateSchool = async (schoolId, updateData) => {
     });
 };
 
+/**
+ * ✅ Delete school
+ */
 const deleteSchool = async (schoolId) => {
     return await prisma.$transaction(async (tx) => {
         // Check if the school exists
         const school = await tx.school.findUnique({
             where: { id: parseInt(schoolId) },
-            select: { school_manager_id: true }
+            select: { id: true }
         });
 
         if (!school) {
@@ -141,33 +156,14 @@ const deleteSchool = async (schoolId) => {
             throw new Error("Cannot delete school because there are classes associated with it. Please delete all classes first.");
         }
 
-        // Proceed to delete the school if no classes are associated
+        // Proceed to delete the school
         await tx.school.delete({
             where: { id: parseInt(schoolId) }
         });
 
-        // If there's a school manager, delete related records before deleting the manager
-        if (school.school_manager_id) {
-            // Delete user profile if it exists
-            await tx.userProfile.deleteMany({
-                where: { userId: school.school_manager_id }
-            });
-
-            // Delete user roles from UserAccessRoles
-            await tx.userAccessRoles.deleteMany({
-                where: { userId: school.school_manager_id }
-            });
-
-            // Delete the school manager
-            await tx.user.delete({
-                where: { id: school.school_manager_id }
-            });
-        }
-
         return { message: "School and all related records deleted successfully." };
     });
 };
-
 
 module.exports = {
     createSchool,

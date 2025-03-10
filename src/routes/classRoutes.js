@@ -14,7 +14,7 @@ const { checkSchoolExists, checkTeacherExists } = require('@/middlewares/schoolA
 const { validateClassUpdate, validateClassCreate } = require("@/validators/classValidator");
 
 // ✅ Create a new class with validation (Teacher is Optional at Creation)
-router.post('/create-new-class', validateClassCreate, checkSchoolExists, createNewClass);
+router.post('/create-new-class',  checkSchoolExists, createNewClass);
 
 // ✅ Assign a teacher to a class
 router.post('/assign-teacher', checkTeacherExists, assignTeacherToClass);

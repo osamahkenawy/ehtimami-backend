@@ -1,5 +1,5 @@
 const { registerTeacher, assignTeacherToClasses, getAllTeachers , getTeachersBySchool, updateTeacher , getTeacherById, deleteTeacher} = require("@/services/teacherService");
-const { errorResponse } = require("@/utils/responseUtil");
+const { successResponse, errorResponse } = require("@/utils/responseUtil");
 
 /**
  * ✅ Register a Teacher
@@ -43,10 +43,22 @@ const getTeachersBySchoolController = async (req, res) => {
 };
 const getTeacherByIdController = async (req, res) => {
     try {
-        return await getTeacherById(req, res);
+        const { teacherId } = req.params;
+
+        if (!teacherId || isNaN(teacherId)) {
+            return errorResponse(res, "Invalid teacher ID.");
+        }
+
+        const result = await getTeacherById(parseInt(teacherId));
+
+        if (result.error) {
+            return errorResponse(res, result.error, 404);
+        }
+
+        return successResponse(res, "Teacher details fetched successfully.", result);
     } catch (error) {
         console.error("Controller Error:", error);
-        return errorResponse(res, error.message || "Failed to fetch teacher.");
+        return errorResponse(res, "An unexpected error occurred.");
     }
 };
 /**

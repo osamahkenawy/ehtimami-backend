@@ -2,51 +2,57 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const getDashboardSummary = async () => {
-  const totalSchools = await prisma.school.count();
-  const activeSchools = await prisma.school.count({
-    where: { status: { name: 'Active' } }
-  });
-  const inactiveSchools = await prisma.school.count({
-    where: { status: { name: 'Inactive' } }
-  });
+  try {
+    // ✅ Batch queries for optimized performance
+    const [
+      totalSchools,
+      activeSchools,
+      inactiveSchools,
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      terminatedUsers,
+      totalClasses,
+      activeClasses,
+      inactiveClasses
+    ] = await prisma.$transaction([
+      prisma.school.count(),
+      prisma.school.count({ where: { status: "ACTIVE" } }), // ✅ Use raw string for enums
+      prisma.school.count({ where: { status: "INACTIVE" } }),
 
-  const totalUsers = await prisma.user.count();
-  const activeUsers = await prisma.user.count({
-    where: { statusId: 1 }
-  });
-  const inactiveUsers = await prisma.user.count({
-    where: { statusId: 2 }
-  });
-  const terminatedUsers = await prisma.user.count({
-    where: { statusId: 3 }
-  });
+      prisma.user.count(),
+      prisma.user.count({ where: { status: "ACTIVE" } }), // ✅ Use raw string for enums
+      prisma.user.count({ where: { status: "INACTIVE" } }),
+      prisma.user.count({ where: { status: "TERMINATED" } }),
 
-  const totalClasses = await prisma.class.count();
-  const activeClasses = await prisma.class.count({
-    where: { status: 'active' }
-  });
-  const inactiveClasses = await prisma.class.count({
-    where: { status: 'inactive' }
-  });
+      prisma.class.count(),
+      prisma.class.count({ where: { status: "active" } }),
+      prisma.class.count({ where: { status: "inactive" } })
+    ]);
 
-  return {
-    schools: {
-      all: totalSchools,
-      active: activeSchools,
-      inactive: inactiveSchools
-    },
-    users: {
-      all: totalUsers,
-      active: activeUsers,
-      inactive: inactiveUsers,
-      terminated: terminatedUsers
-    },
-    classes: {
-      all: totalClasses,
-      active: activeClasses,
-      inactive: inactiveClasses
-    }
-  };
+    // ✅ Return structured dashboard summary
+    return {
+      schools: {
+        total: totalSchools,
+        active: activeSchools,
+        inactive: inactiveSchools
+      },
+      users: {
+        total: totalUsers,
+        active: activeUsers,
+        inactive: inactiveUsers,
+        terminated: terminatedUsers
+      },
+      classes: {
+        total: totalClasses,
+        active: activeClasses,
+        inactive: inactiveClasses
+      }
+    };
+  } catch (error) {
+    console.error("❌ Error fetching dashboard summary:", error);
+    return { error: "An unexpected error occurred while fetching dashboard data." };
+  }
 };
 
 module.exports = {
