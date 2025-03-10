@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerTeacherController,getAllTeachersController, deleteTeacherController, assignTeacherToClassesController, getTeachersBySchoolController, getTeacherByIdController } = require("@/controllers/teacherController");
+const { registerTeacherController,getAllTeachersController, deleteTeacherController,updateTeacherController, assignTeacherToClassesController, getTeachersBySchoolController, getTeacherByIdController } = require("@/controllers/teacherController");
 const { authenticate } = require("@middlewares/authMiddleware");
 const { checkSchoolExistsById } = require("@/middlewares/checkSchoolExists");
 
@@ -19,5 +19,7 @@ router.get("/:teacherId",authenticate, getTeacherByIdController);
 
 // ✅ Delete Teacher
 router.delete("/:teacherId",authenticate, deleteTeacherController);
+
+router.put("/:teacherId",authenticate, updateTeacherController);
 
 module.exports = router;

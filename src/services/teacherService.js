@@ -232,24 +232,139 @@ const getTeacherById = async (req, res) => {
 };
 
 /**
- * ✅ **Delete a Teacher by `teacherId`**
+ * ✅ Update Teacher Details (Only Update Sent Fields)
  */
-const deleteTeacher = async (req, res) => {
+const updateTeacher = async (req, res) => {
     try {
-        const { teacherId } = req.params;
+        const teacherId = parseInt(req.params.teacherId);
+        const updateData = req.body;
 
-        if (!teacherId || isNaN(teacherId)) {
-            return errorResponse(res, "Invalid or missing teacher ID.");
+        if (isNaN(teacherId)) {
+            return errorResponse(res, "Invalid teacher ID.");
         }
 
         // 🔍 Check if teacher exists
         const teacher = await prisma.user.findUnique({
-            where: {
-                id: parseInt(teacherId),
-                roles: { some: { roleId: 2 } }, // Ensure user is a teacher
+            where: { id: teacherId },
+            include: { profile: true, teacherClasses: true },
+        });
+
+        if (!teacher) {
+            return errorResponse(res, "Teacher not found.", 404);
+        }
+
+        // ✅ Prepare User and Profile Update Data
+        let userUpdateData = {};
+        let profileUpdateData = {};
+
+        const userFields = ["firstName", "lastName", "email", "statusId", "schoolId"];
+        const profileFields = [
+            "marital_status", "nationality", "birth_date", "join_date", "gender",
+            "address", "latitude", "longitude", "avatar"
+        ];
+
+        // 🔹 Only update fields that are provided in the request
+        for (const field of userFields) {
+            if (updateData[field] !== undefined) {
+                userUpdateData[field] = updateData[field];
+            }
+        }
+        for (const field of profileFields) {
+            if (updateData[field] !== undefined) {
+                profileUpdateData[field] = updateData[field];
+            }
+        }
+
+        // ✅ Update User and Profile
+        const updatedTeacher = await prisma.user.update({
+            where: { id: teacherId },
+            data: {
+                ...userUpdateData,
+                profile: Object.keys(profileUpdateData).length > 0 ? { update: profileUpdateData } : undefined,
             },
             include: {
-                profile: true, // Include profile
+                roles: { include: { role: true } },
+                profile: true,
+                school: true,
+                teacherClasses: { include: { class: true } },
+            },
+        });
+
+        // ✅ Update Class Assignments if classIds are provided
+        if (updateData.classIds && Array.isArray(updateData.classIds)) {
+            await prisma.classTeacher.deleteMany({ where: { teacherId } }); // Clear old classes
+
+            await prisma.classTeacher.createMany({
+                data: updateData.classIds.map(classId => ({
+                    teacherId,
+                    classId
+                })),
+            });
+        }
+
+        // 🔥 **Format Response**
+        const formattedTeacher = {
+            teacherId: updatedTeacher.id,
+            firstName: updatedTeacher.firstName,
+            lastName: updatedTeacher.lastName,
+            email: updatedTeacher.email,
+            school: updatedTeacher.school ? {
+                schoolId: updatedTeacher.school.id,
+                school_name: updatedTeacher.school.school_name
+            } : null,
+            profile: updatedTeacher.profile ? {
+                profileId: updatedTeacher.profile.id,
+                marital_status: updatedTeacher.profile.marital_status,
+                nationality: updatedTeacher.profile.nationality,
+                birth_date: updatedTeacher.profile.birth_date,
+                join_date: updatedTeacher.profile.join_date,
+                gender: updatedTeacher.profile.gender,
+                address: updatedTeacher.profile.address,
+                latitude: updatedTeacher.profile.latitude,
+                longitude: updatedTeacher.profile.longitude,
+                avatar: updatedTeacher.profile.avatar,
+            } : null,
+            classes: updatedTeacher.teacherClasses.map(tc => ({
+                id: tc.class.id,
+                name: tc.class.name
+            })),
+        };
+
+        return successResponse(res, "Teacher updated successfully.", formattedTeacher);
+    } catch (error) {
+        console.error("Error updating teacher:", error);
+        return errorResponse(res, "An unexpected error occurred.");
+    }
+};
+
+/**
+ * ✅ **Delete a Teacher by `teacherId`**
+ */
+const deleteTeacher = async (req, res) => {
+    try {
+        const profileId = parseInt(req.params.profileId);
+
+        if (!profileId || isNaN(profileId)) {
+            return errorResponse(res, "Invalid or missing profile ID.");
+        }
+
+        // 🔍 Step 1: Fetch `userId` using `profileId`
+        const profile = await prisma.userProfile.findUnique({
+            where: { id: profileId },
+            select: { userId: true }, // Only fetch `userId`
+        });
+
+        if (!profile || !profile.userId) {
+            return errorResponse(res, "Teacher not found.");
+        }
+
+        const userId = profile.userId;
+
+        // 🔍 Step 2: Check if User Exists and is a Teacher
+        const teacher = await prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                roles: true, // Ensure user has teacher role
                 teacherClasses: true, // Include assigned classes
             },
         });
@@ -258,22 +373,27 @@ const deleteTeacher = async (req, res) => {
             return errorResponse(res, "Teacher not found.");
         }
 
+        // Ensure the user has a teacher role
+        const hasTeacherRole = teacher.roles.some(role => role.roleId === 2);
+        if (!hasTeacherRole) {
+            return errorResponse(res, "User is not a teacher.");
+        }
+
+        // 🔄 Step 3: Delete Teacher Data in Transaction
         await prisma.$transaction(async (tx) => {
             // ❌ Delete all class assignments for the teacher
             await tx.classTeacher.deleteMany({
-                where: { teacherId: parseInt(teacherId) },
+                where: { teacherId: userId },
             });
 
             // ❌ Delete teacher profile
-            if (teacher.profile) {
-                await tx.userProfile.delete({
-                    where: { userId: parseInt(teacherId) },
-                });
-            }
+            await tx.userProfile.delete({
+                where: { id: profileId },
+            });
 
             // ❌ Delete teacher account
             await tx.user.delete({
-                where: { id: parseInt(teacherId) },
+                where: { id: userId },
             });
         });
 
@@ -284,11 +404,14 @@ const deleteTeacher = async (req, res) => {
     }
 };
 
+
+
 module.exports = {
     registerTeacher,
     assignTeacherToClasses,
     getAllTeachers,
     getTeachersBySchool,
     getTeacherById,
-    deleteTeacher
+    deleteTeacher,
+    updateTeacher
 };

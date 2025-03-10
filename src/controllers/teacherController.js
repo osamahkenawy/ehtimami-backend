@@ -1,4 +1,4 @@
-const { registerTeacher, assignTeacherToClasses, getAllTeachers , getTeachersBySchool, getTeacherById, deleteTeacher} = require("@/services/teacherService");
+const { registerTeacher, assignTeacherToClasses, getAllTeachers , getTeachersBySchool, updateTeacher , getTeacherById, deleteTeacher} = require("@/services/teacherService");
 const { errorResponse } = require("@/utils/responseUtil");
 
 /**
@@ -49,7 +49,31 @@ const getTeacherByIdController = async (req, res) => {
         return errorResponse(res, error.message || "Failed to fetch teacher.");
     }
 };
+/**
+ * ✅ Controller to Update Teacher (Calls the Service)
+ */
+const updateTeacherController = async (req, res) => {
+    try {
+        const teacherId = parseInt(req.params.teacherId);
+        const updateData = req.body;
 
+        if (isNaN(teacherId)) {
+            return errorResponse(res, "Invalid teacher ID.");
+        }
+
+        // Call the service function
+        const result = await updateTeacher(teacherId, updateData);
+
+        if (result.error) {
+            return errorResponse(res, result.error, 400);
+        }
+
+        return successResponse(res, "Teacher updated successfully.", result.data);
+    } catch (error) {
+        console.error("Error in updateTeacherController:", error);
+        return errorResponse(res, "An unexpected error occurred.");
+    }
+};
 const deleteTeacherController = async (req, res) => {
     try {
         return await deleteTeacher(req, res);
@@ -65,5 +89,6 @@ module.exports = {
     getAllTeachersController,
     getTeachersBySchoolController,
     getTeacherByIdController,
-    deleteTeacherController
+    deleteTeacherController,
+    updateTeacherController
 };
