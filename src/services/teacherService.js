@@ -195,6 +195,15 @@ const deleteTeacher = async (req, res) => {
             return errorResponse(res, "Invalid teacher ID.");
         }
 
+        // Check if teacher exists
+        const teacher = await prisma.user.findUnique({
+            where: { id: teacherId },
+        });
+
+        if (!teacher) {
+            return errorResponse(res, "Teacher not found.");
+        }
+
         await prisma.$transaction(async (tx) => {
             await tx.classTeacher.deleteMany({ where: { teacherId } });
             await tx.userProfile.deleteMany({ where: { userId: teacherId } });
@@ -207,6 +216,7 @@ const deleteTeacher = async (req, res) => {
         return errorResponse(res, "An unexpected error occurred.");
     }
 };
+
 
 const getAllTeachers = async (req, res) => {
     try {
