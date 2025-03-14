@@ -256,153 +256,67 @@ const getAllTeachers = async (req, res) => {
         const teachers = await prisma.user.findMany({
             where: {
                 roles: {
-                    some: { roleId: 2 } // 🔍 Only users with the teacher role
+                    some: { roleId: 2 } // Only users with the teacher role
                 }
             },
             include: {
+                profile: true, // Include all profile details
                 schools: {
                     include: {
-                        school: {
-                            select: {
-                                id: true,
-                                school_name: true
-                            }
-                        }
+                        school: true // Include full school details
                     }
                 },
                 teacherClasses: {
                     include: {
-                        class: {
-                            select: {
-                                id: true,
-                                name: true,
-                                gradeLevel: true,
-                                subject: true
-                            }
-                        }
+                        class: true // Include full class details
                     }
                 },
-                profile: {
-                    select: {
-                        bio: true,
-                        avatar: true,
-                        marital_status: true,
-                        nationality: true,
-                        birth_date: true,
-                        gender: true,
-                        address: true,
-                        latitude: true,
-                        longitude: true
-                    }
-                }
+                roles: true // Include roles
             }
         });
 
-        // 🔹 Formatting the Response
-        const formattedTeachers = teachers.map(teacher => ({
-            teacherId: teacher.id,
-            firstName: teacher.firstName,
-            lastName: teacher.lastName,
-            email: teacher.email,
-            school: teacher.schools.length > 0 ? {
-                schoolId: teacher.schools[0].school.id,
-                school_name: teacher.schools[0].school.school_name
-            } : null,
-            profile: teacher.profile || null,
-            classes: teacher.teacherClasses.map(tc => ({
-                id: tc.class.id,
-                name: tc.class.name,
-                gradeLevel: tc.class.gradeLevel,
-                subject: tc.class.subject
-            }))
-        }));
-
-        return successResponse(res, "Teachers fetched successfully.", formattedTeachers);
+        return successResponse(res, "Teachers fetched successfully.", teachers);
     } catch (error) {
         console.error("Error fetching teachers:", error);
         return errorResponse(res, "An unexpected error occurred.");
     }
 };
 
-const getTeacherById = async (teacherId) => {
-    try {
-        // 🔹 Fetch Teacher Basic Info
-        const teacher = await prisma.$queryRaw`
-            SELECT 
-                u.id AS teacherId, 
-                u.firstName, 
-                u.lastName, 
-                u.email, 
-                u.status, 
-                s.id AS schoolId,
-                s.school_name,
-                up.id AS profileId,
-                up.bio, 
-                up.avatar, 
-                up.marital_status, 
-                up.nationality, 
-                up.birth_date, 
-                up.join_date, 
-                up.gender, 
-                up.address
-            FROM User u
-            LEFT JOIN UserProfile up ON u.id = up.userId
-            LEFT JOIN UserSchool us ON u.id = us.userId
-            LEFT JOIN School s ON us.schoolId = s.id
-            WHERE u.id = ${teacherId} 
-            LIMIT 1;
-        `;
 
-        if (!teacher || teacher.length === 0) {
-            return { error: "Teacher not found." };
+const getTeacherById = async (req, res) => {
+    try {
+        const teacherId = parseInt(req.params.teacherId);
+
+        if (isNaN(teacherId)) {
+            return errorResponse(res, "Invalid teacher ID.");
         }
 
-        // 🔹 Fetch Teacher Roles
-        const roles = await prisma.$queryRaw`
-            SELECT r.name 
-            FROM Role r
-            INNER JOIN UserAccessRoles ur ON r.id = ur.roleId
-            WHERE ur.userId = ${teacherId};
-        `;
+        const teacher = await prisma.user.findUnique({
+            where: { id: teacherId },
+            include: {
+                profile: true, // Include full profile details
+                schools: {
+                    include: {
+                        school: true // Include full school details
+                    }
+                },
+                teacherClasses: {
+                    include: {
+                        class: true // Include full class details
+                    }
+                },
+                roles: true // Include roles
+            }
+        });
 
-        // 🔹 Fetch Assigned Classes
-        const classes = await prisma.$queryRaw`
-            SELECT c.id, c.name, c.gradeLevel, c.subject, c.academic_year
-            FROM Class c
-            INNER JOIN ClassTeacher ct ON c.id = ct.classId
-            WHERE ct.teacherId = ${teacherId};
-        `;
+        if (!teacher) {
+            return errorResponse(res, "Teacher not found.", 404);
+        }
 
-        // ✅ Final Response Object
-        return {
-            teacherId: teacher[0].teacherId,
-            firstName: teacher[0].firstName,
-            lastName: teacher[0].lastName,
-            email: teacher[0].email,
-            status: teacher[0].status,
-            school: teacher[0].schoolId
-                ? {
-                      schoolId: teacher[0].schoolId,
-                      school_name: teacher[0].school_name
-                  }
-                : null,
-            profile: {
-                profileId: teacher[0].profileId,
-                bio: teacher[0].bio,
-                avatar: teacher[0].avatar,
-                marital_status: teacher[0].marital_status,
-                nationality: teacher[0].nationality,
-                birth_date: teacher[0].birth_date,
-                join_date: teacher[0].join_date,
-                gender: teacher[0].gender,
-                address: teacher[0].address
-            },
-            roles: roles.map((r) => r.name),
-            classes: classes
-        };
+        return successResponse(res, "Teacher details fetched successfully.", teacher);
     } catch (error) {
-        console.error("Error fetching teacher:", error);
-        return { error: "An unexpected error occurred while fetching the teacher." };
+        console.error("Error fetching teacher by ID:", error);
+        return errorResponse(res, "An unexpected error occurred.");
     }
 };
 
