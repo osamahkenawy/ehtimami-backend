@@ -1,7 +1,10 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+
 const { z } = require("zod");
 const { successResponse, errorResponse } = require("@/utils/responseUtil");
+const { sendEmail } = require("@/middlewares/sendEmailMiddleware"); // Import email middleware
 
 const prisma = new PrismaClient();
 
@@ -10,7 +13,6 @@ const teacherSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters long"),
     lastName: z.string().min(2, "Last name must be at least 2 characters long"),
     email: z.string().email("Invalid email format"),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
     occupation: z.string().optional(),
     schoolId: z.number().int().positive("Invalid school ID"),
     marital_status: z.enum(["SINGLE", "MARRIED", "DIVORCED"]).default("SINGLE"),
@@ -24,9 +26,12 @@ const teacherSchema = z.object({
     statusId: z.number().default(1),
 });
 
-/**
- * ✅ Register a new teacher
- */
+// ✅ Function to generate a random password
+const generateRandomPassword = () => {
+    return crypto.randomBytes(8).toString("hex"); // Generates a secure 16-character password
+};
+
+// ✅ Register a new teacher
 const registerTeacher = async (req, res) => {
     try {
         // 🔍 Validate Request Data
@@ -36,7 +41,7 @@ const registerTeacher = async (req, res) => {
             return errorResponse(res, `Validation Failed: ${errors}`);
         }
 
-        const { firstName, lastName, email, password, schoolId, marital_status, nationality, birth_date, gender, address, latitude, longitude, avatar, occupation } = validatedData.data;
+        const { firstName, lastName, email, schoolId, marital_status, nationality, birth_date, gender, address, latitude, longitude, avatar, occupation } = validatedData.data;
 
         // 🔍 Check if email exists
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -50,8 +55,9 @@ const registerTeacher = async (req, res) => {
             return errorResponse(res, "Invalid school ID.");
         }
 
-        // ✅ Hash Password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // ✅ Generate a random password and hash it
+        const generatedPassword = generateRandomPassword();
+        const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
         // ✅ Create Teacher with UserProfile
         const newTeacher = await prisma.user.create({
@@ -60,10 +66,8 @@ const registerTeacher = async (req, res) => {
                 lastName,
                 email,
                 password: hashedPassword,
-                status: "ACTIVE", // ✅ Fix: Use status instead of statusId
-                roles: {
-                    create: [{ roleId: 2 }] // Assign teacher role
-                },
+                status: "ACTIVE",
+                roles: { create: [{ roleId: 2 }] }, // Assign teacher role
                 profile: {
                     create: {
                         bio: `Teacher at ${school.school_name}`,
@@ -79,23 +83,32 @@ const registerTeacher = async (req, res) => {
                         avatar
                     }
                 },
-                schools: {
-                    create: [{ schoolId }] // ✅ Ensure the teacher is linked to a school
-                }
+                schools: { create: [{ schoolId }] }
             },
             include: {
                 roles: { include: { role: true } },
                 profile: true
             }
         });
-        
 
-        return successResponse(res, "Teacher registered successfully.", newTeacher, 201);
+        // ✅ Send Email with the generated password
+        await sendEmail(email, "Welcome to Ehtimami System", `
+            <h3>Hello ${firstName},</h3>
+            <p>Your account has been created. Here are your login details:</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Password:</strong> ${generatedPassword}</p>
+            <p>Please change your password after logging in.</p>
+            <br/>
+            <p>Best regards,</p>
+            <p>School Administration</p>
+        `);
+        return successResponse(res, "Teacher registered successfully. A password has been sent via email.", newTeacher, 201);
     } catch (error) {
         console.error("Error registering teacher:", error);
         return errorResponse(res, "An unexpected error occurred.");
     }
 };
+
 
 /**
  * ✅ Assign Teacher to Multiple Classes
