@@ -54,6 +54,7 @@ model UserProfile {
   interests          Json?
   marital_status     MaritalStatus @default(SINGLE)
   nationality        String        @default("Unknown") @db.VarChar(100)
+  phone              String?
   birth_date         DateTime?
   join_date          DateTime      @default(now())
   gender             Int           @default(1) // 1 = Male, 2 = Female, 3 = Other
