@@ -13,17 +13,22 @@ const teacherSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters long"),
     lastName: z.string().min(2, "Last name must be at least 2 characters long"),
     email: z.string().email("Invalid email format"),
-    occupation: z.string().optional(),
     schoolId: z.number().int().positive("Invalid school ID"),
-    marital_status: z.enum(["SINGLE", "MARRIED", "DIVORCED"]).default("SINGLE"),
-    nationality: z.string().min(2, "Nationality must be at least 2 characters long").default("Unknown"),
-    birth_date: z.string().optional(),
-    gender: z.number().min(1).max(3, "Gender must be 1 (Male), 2 (Female), or 3 (Other)").default(1),
-    address: z.string().optional(),
-    latitude: z.number().optional(),
-    longitude: z.number().optional(),
-    avatar: z.string().url("Invalid URL format for avatar").optional(),
-    statusId: z.number().default(1),
+    profile: z.object({
+        marital_status: z.enum(["SINGLE", "MARRIED", "DIVORCED"]).default("SINGLE"),
+        nationality: z.string().min(2, "Nationality must be at least 2 characters long").default("Unknown"),
+        birth_date: z.string().optional(),
+        join_date: z.string().optional(),
+        gender: z.number().min(1).max(3, "Gender must be 1 (Male), 2 (Female), or 3 (Other)").default(1),
+        address: z.string().optional(),
+        latitude: z.number().optional(),
+        longitude: z.number().optional(),
+        avatar: z.string().url("Invalid URL format for avatar").optional(),
+        occupation: z.string().optional(),
+        phone: z.string().optional(),
+        bio: z.string().optional()
+    }).optional(),
+    statusId: z.number().default(1)
 });
 
 // ✅ Function to generate a random password
@@ -41,7 +46,7 @@ const registerTeacher = async (req, res) => {
             return errorResponse(res, `Validation Failed: ${errors}`);
         }
 
-        const { firstName, lastName, email, schoolId, marital_status, nationality, birth_date, gender, address, latitude, longitude, avatar, occupation } = validatedData.data;
+        const { firstName, lastName, email, schoolId, profile } = req.body;
 
         // 🔍 Check if email exists
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -54,6 +59,17 @@ const registerTeacher = async (req, res) => {
         if (!school) {
             return errorResponse(res, "Invalid school ID.");
         }
+
+        // ✅ Extract profile fields safely
+        const { 
+            marital_status, nationality, birth_date, gender, address, latitude, longitude, avatar, occupation, phone, bio 
+        } = profile || {};
+
+        // ✅ Ensure `join_date` is set to the current date if not provided
+        const joinDate = profile?.join_date ? new Date(profile.join_date) : new Date();
+
+        // ✅ Trim spaces from phone number
+        const cleanedPhone = phone ? phone.replace(/\s+/g, "") : null; 
 
         // ✅ Generate a random password and hash it
         const generatedPassword = generateRandomPassword();
@@ -70,17 +86,18 @@ const registerTeacher = async (req, res) => {
                 roles: { create: [{ roleId: 2 }] }, // Assign teacher role
                 profile: {
                     create: {
-                        bio: `Teacher at ${school.school_name}`,
+                        bio: bio || `Teacher at ${school.school_name}`,
                         marital_status,
                         nationality,
                         birth_date: birth_date ? new Date(birth_date) : null,
-                        join_date: new Date(),
+                        join_date: joinDate, // ✅ Fixed join_date
                         gender,
                         address,
                         occupation,
                         latitude,
                         longitude,
-                        avatar
+                        avatar,
+                        phone: cleanedPhone // ✅ Trimmed phone number
                     }
                 },
                 schools: { create: [{ schoolId }] }
@@ -102,6 +119,7 @@ const registerTeacher = async (req, res) => {
             <p>Best regards,</p>
             <p>School Administration</p>
         `);
+
         return successResponse(res, "Teacher registered successfully. A password has been sent via email.", newTeacher, 201);
     } catch (error) {
         console.error("Error registering teacher:", error);
@@ -305,6 +323,7 @@ const getAllTeachers = async (req, res) => {
         return errorResponse(res, "An unexpected error occurred.");
     }
 };
+
 const getTeacherById = async (teacherId) => {
     try {
         // 🔹 Fetch Teacher Basic Info
