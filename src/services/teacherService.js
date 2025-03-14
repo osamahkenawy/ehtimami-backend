@@ -11,6 +11,7 @@ const teacherSchema = z.object({
     lastName: z.string().min(2, "Last name must be at least 2 characters long"),
     email: z.string().email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters long"),
+    occupation: z.string().optional(),
     schoolId: z.number().int().positive("Invalid school ID"),
     marital_status: z.enum(["SINGLE", "MARRIED", "DIVORCED"]).default("SINGLE"),
     nationality: z.string().min(2, "Nationality must be at least 2 characters long").default("Unknown"),
@@ -35,7 +36,7 @@ const registerTeacher = async (req, res) => {
             return errorResponse(res, `Validation Failed: ${errors}`);
         }
 
-        const { firstName, lastName, email, password, schoolId, marital_status, nationality, birth_date, gender, address, latitude, longitude, avatar } = validatedData.data;
+        const { firstName, lastName, email, password, schoolId, marital_status, nationality, birth_date, gender, address, latitude, longitude, avatar, occupation } = validatedData.data;
 
         // 🔍 Check if email exists
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -72,6 +73,7 @@ const registerTeacher = async (req, res) => {
                         join_date: new Date(),
                         gender,
                         address,
+                        occupation,
                         latitude,
                         longitude,
                         avatar
