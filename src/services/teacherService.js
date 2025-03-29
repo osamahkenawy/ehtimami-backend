@@ -1,7 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-
+const { getEmailTemplate } = require("@/utils/emailUtil"); // Import utility
 const { z } = require("zod");
 const { successResponse, errorResponse } = require("@/utils/responseUtil");
 const { sendEmail } = require("@/middlewares/sendEmailMiddleware"); // Import email middleware
@@ -109,16 +109,23 @@ const registerTeacher = async (req, res) => {
         });
 
         // ✅ Send Email with the generated password
-        await sendEmail(email, "Welcome to Ehtimami System", `
-            <h3>Hello ${firstName},</h3>
-            <p>Your account has been created. Here are your login details:</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Password:</strong> ${generatedPassword}</p>
-            <p>Please change your password after logging in.</p>
-            <br/>
-            <p>Best regards,</p>
-            <p>School Administration</p>
-        `);
+        // await sendEmail(email, "Welcome to Ehtimami System", `
+        //     <h3>Hello ${firstName},</h3>
+        //     <p>Your account has been created. Here are your login details:</p>
+        //     <p><strong>Email:</strong> ${email}</p>
+        //     <p><strong>Password:</strong> ${generatedPassword}</p>
+        //     <p>Please change your password after logging in.</p>
+        //     <br/>
+        //     <p>Best regards,</p>
+        //     <p>School Administration</p>
+        // `);
+        const emailContent = getEmailTemplate("welcomeTeacher", {
+            firstName,
+            email,
+            password: generatedPassword
+        });
+        
+        await sendEmail(email, "Welcome to Ehtimami System", emailContent);
 
         return successResponse(res, "Teacher registered successfully. A password has been sent via email.", newTeacher, 201);
     } catch (error) {
