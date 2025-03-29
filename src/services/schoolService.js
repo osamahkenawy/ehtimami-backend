@@ -165,10 +165,69 @@ const deleteSchool = async (schoolId) => {
     });
 };
 
+const getSchoolUsersByRole = async (schoolManagerId) => {
+    const schoolAdmin = await prisma.schoolAdmin.findUnique({
+        where: { userId: schoolManagerId },
+        include: { school: true }
+    });
+
+    if (!schoolAdmin) {
+        throw new Error("Unauthorized. You are not assigned as a school manager.");
+    }
+
+    const schoolId = schoolAdmin.schoolId;
+
+    // Fetch all related users in that school
+    const users = await prisma.user.findMany({
+        where: {
+            schools: {
+                some: { schoolId }
+            },
+            roles: {
+                some: {
+                    role: {
+                        name: { in: ["teacher", "student", "parent"] }
+                    }
+                }
+            }
+        },
+        include: {
+            roles: { include: { role: true } },
+            profile: true,
+            schools: { include: { school: true } }
+        }
+    });
+
+    const grouped = { teachers: [], students: [], parents: [] };
+
+    users.forEach(user => {
+        const roles = user.roles.map(r => r.role.name);
+        const base = {
+            id: user.id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            phone: user.phone,
+            profile: user.profile || null
+        };
+
+        const schoolMatch = user.schools.find(s => s.schoolId === schoolId);
+        const schoolData = schoolMatch ? { ...schoolMatch.school } : null;
+
+
+        if (roles.includes("teacher")) grouped.teachers.push({ ...base, school: schoolData });
+        if (roles.includes("student")) grouped.students.push(base);
+        if (roles.includes("parent")) grouped.parents.push(base);
+    });
+
+    return grouped;
+};
+
+
 module.exports = {
     createSchool,
     getAllSchools,
     getSchoolById,
     updateSchool,
     deleteSchool,
+    getSchoolUsersByRole
 };
