@@ -18,7 +18,29 @@ async function main() {
         });
     }
     console.log("✅ Roles Seeded!");
-
+    console.log("👑 Seeding Default Admin...");
+    const adminEmail = "admin@ehtimami.com";
+    const hashedAdminPassword = await bcrypt.hash("Ehtimami@123", 10);
+    
+    let adminUser = await prisma.user.upsert({
+        where: { email: adminEmail },
+        update: {},
+        create: {
+            firstName: "Ehtimami",
+            lastName: "Admin",
+            email: adminEmail,
+            password: hashedAdminPassword,
+            status: UserStatus.ACTIVE,
+            is_verified: true,
+            roles: { create: [{ role: { connect: { name: "admin" } } }] },
+            profile: {
+                create: {
+                    bio: "System Administrator"
+                }
+            }
+        }
+    });
+    console.log("✅ Default Admin Account Created!");
     // ✅ Seed School Manager
     console.log("👨‍🏫 Seeding School Manager...");
     const managerEmail = "manager@school.com";

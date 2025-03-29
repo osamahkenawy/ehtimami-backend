@@ -63,6 +63,7 @@ model UserProfile {
   longitude          Float?
   emergency_contacts Json? // ✅ New: Emergency contact list
   profile_visibility String        @default("public") // ✅ public, private, school-only
+  updatedAt DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -67,10 +67,22 @@ const deleteSchool = async (req, res) => {
     }
 };
 
+const fetchSchoolUsers = async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const result = await schoolService.getSchoolUsersByRole(userId);
+        return successResponse(res, "School users fetched successfully", result);
+    } catch (err) {
+        console.error("❌ Error:", err);
+        return errorResponse(res, err.message || "Failed to fetch school users");
+    }
+};
+
 module.exports = {
     createSchool,
     getAllSchools,
     getSchoolById,
     updateSchool,
     deleteSchool,
+    fetchSchoolUsers
 };
