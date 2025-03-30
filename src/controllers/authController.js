@@ -44,6 +44,7 @@ const register = async (req, res = null) => {
                 lastName,
                 email,
                 password: hashedPassword,
+                is_verified: false,
                 status: UserStatus.ACTIVE, // ✅ Set Active Status
                 schools: schoolId ? { create: [{ schoolId }] } : undefined, // ✅ Assign school if provided
                 roles: { create: validRoleIds.map(roleId => ({ roleId })) },
@@ -79,20 +80,17 @@ const login = async (req, res) => {
             },
         });
 
-        if (!user) {
+        if (!user || !(await comparePassword(password, user.password))) {
             return errorResponse(res, "Invalid credentials.", 401);
         }
 
-        // 🔍 Check password
-        const isValidPassword = await comparePassword(password, user.password);
-        if (!isValidPassword) {
-            return errorResponse(res, "Invalid credentials.", 401);
+        // ✅ Prevent login if not verified
+        if (!user.is_verified) {
+            return errorResponse(res, "Your account is not verified yet. Please wait for approval.", 403);
         }
 
-        // ✅ Generate Token
         const token = generateToken(user);
 
-        // 📢 Send push notification after successful login
         if (deviceToken) {
             await sendPushNotification(
                 deviceToken,

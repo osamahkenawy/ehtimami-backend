@@ -7,10 +7,10 @@ const formatUser = (user) => ({
     lastName: user.lastName,
     email: user.email,
     roles: user.roles.map(r => r.role.name),
+    is_verified: user.is_verified, // ✅ correct location
     school: user.schools[0]?.school
         ? {
-              schoolId: user.schools[0].school.id,
-              school_name: user.schools[0].school.school_name,
+            ...user.schools[0]?.school
           }
         : null,
     profile: user.profile
