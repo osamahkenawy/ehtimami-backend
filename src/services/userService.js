@@ -1,25 +1,23 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const { updateUserProfileSchema } = require("@/validators/userProfile.schema");
 
 const formatUser = (user) => ({
     userId: user.id,
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
-    roles: user.roles.map(r => r.role.name),
-    is_verified: user.is_verified, // ✅ correct location
-    school: user.schools[0]?.school
-        ? {
-            ...user.schools[0]?.school
-          }
-        : null,
+    roles: user.roles.map((r) => r.role.name),
+    is_verified: user.is_verified,
+    phone: user.phone,
+    school: user.schools[0]?.school || null,
     profile: user.profile
         ? { ...user.profile, profileId: user.profile.id }
         : null,
-    classes: user.teacherClasses.map(tc => ({
+    classes: user.teacherClasses.map((tc) => ({
         id: tc.class.id,
-        name: tc.class.name
-    }))
+        name: tc.class.name,
+    })),
 });
 
 const getAllUsers = async () => {
@@ -68,9 +66,7 @@ const getUserByProfileId = async (profileId) => {
 };
 
 const verifyUserById = async (userId, isVerified = true) => {
-    if (isNaN(userId)) {
-        throw new Error("Invalid user ID.");
-    }
+    if (isNaN(userId)) throw new Error("Invalid user ID.");
 
     const updatedUser = await prisma.user.update({
         where: { id: userId },
@@ -79,95 +75,68 @@ const verifyUserById = async (userId, isVerified = true) => {
 
     return updatedUser;
 };
-const updateUserProfile = async (userId, payload) => {
+
+/**
+ * ✅ Unified update: User + Profile in one API
+ */
+const updateUserProfile = async (userId, rawPayload) => {
     if (isNaN(userId)) throw new Error("Invalid user ID.");
-
+  
+    // ✅ Validate & sanitize with Zod
+    const payload = updateUserProfileSchema.parse(rawPayload);
+  
     const {
-        phone,
-        bio,
-        avatar,
-        profile_banner,
-        middleName,
-        nickname,
-        occupation,
-        company,
-        website,
-        social_links,
-        preferences,
-        interests,
-        marital_status,
-        nationality,
-        birth_date,
-        join_date,
-        gender,
-        address,
-        latitude,
-        longitude,
-        emergency_contacts,
-        profile_visibility,
+      firstName,
+      lastName,
+      phone,
+      email,
+      ...profileFields
     } = payload;
-
-    // Build user-level update (e.g., phone)
-    const dataToUpdate = {};
-    if (typeof phone !== "undefined") dataToUpdate.phone = phone;
-
-    // Fields to update in UserProfile (key => value)
-    const profileFields = {
-        bio,
-        avatar,
-        profile_banner,
-        middleName,
-        nickname,
-        occupation,
-        company,
-        website,
-        social_links,
-        preferences,
-        interests,
-        marital_status,
-        nationality,
-        gender,
-        address,
-        latitude,
-        longitude,
-        emergency_contacts,
-        profile_visibility,
-    };
-
-    // Convert date fields safely
-    if (birth_date) profileFields.birth_date = new Date(birth_date);
-    if (join_date) profileFields.join_date = new Date(join_date);
-
-    // Filter out undefined values
-    const profileUpdate = Object.entries(profileFields).reduce((acc, [key, value]) => {
-        if (typeof value !== "undefined") {
-            acc[key] = value;
-        }
-        return acc;
-    }, {});
-
-    // Run Prisma update
-    const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-            ...dataToUpdate,
-            profile: {
-                upsert: {
-                    create: profileUpdate,
-                    update: profileUpdate,
-                },
-            },
+  
+    // ✅ Unique phone check
+    if (phone) {
+      const existing = await prisma.user.findFirst({
+        where: {
+          phone,
+          NOT: { id: userId },
         },
-        include: { profile: true },
+      });
+  
+      if (existing) {
+        const error = new Error("Phone number is already in use.");
+        error.status = 400;
+        throw error;
+      }
+    }
+  
+    // ✅ Convert dates
+    if (profileFields.birth_date) profileFields.birth_date = new Date(profileFields.birth_date);
+    if (profileFields.join_date) profileFields.join_date = new Date(profileFields.join_date);
+  
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName,
+        lastName,
+        phone,
+        email,
+        profile: {
+          upsert: {
+            create: profileFields,
+            update: profileFields,
+          },
+        },
+      },
+      include: { profile: true },
     });
-
+  
     return updatedUser;
-};
+  };
 
 module.exports = {
     getAllUsers,
     getUserById,
     getUserByProfileId,
     verifyUserById,
-    updateUserProfile,
+    updateUserProfile, // ✅ now handles both User + Profile updates
 };
