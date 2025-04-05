@@ -84,6 +84,7 @@ const registerTeacher = async (req, res) => {
                 password: hashedPassword,
                 status: "ACTIVE",
                 roles: { create: [{ roleId: 2 }] }, // Assign teacher role
+                is_verified: false,
                 profile: {
                     create: {
                         bio: bio || `Teacher at ${school.school_name}`,
@@ -109,21 +110,21 @@ const registerTeacher = async (req, res) => {
         });
 
         // ✅ Send Email with the generated password
-        // await sendEmail(email, "Welcome to Ehtimami System", `
-        //     <h3>Hello ${firstName},</h3>
-        //     <p>Your account has been created. Here are your login details:</p>
-        //     <p><strong>Email:</strong> ${email}</p>
-        //     <p><strong>Password:</strong> ${generatedPassword}</p>
-        //     <p>Please change your password after logging in.</p>
-        //     <br/>
-        //     <p>Best regards,</p>
-        //     <p>School Administration</p>
-        // `);
-        const emailContent = getEmailTemplate("welcomeTeacher", {
-            firstName,
-            email,
-            password: generatedPassword
-        });
+        await sendEmail(email, "Welcome to Ehtimami System", `
+            <h3>Hello ${firstName},</h3>
+            <p>Your account has been created. Here are your login details:</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Password:</strong> ${generatedPassword}</p>
+            <p>Please change your password after logging in.</p>
+            <br/>
+            <p>Best regards,</p>
+            <p>School Administration</p>
+        `);
+        // const emailContent = getEmailTemplate("welcomeTeacher", {
+        //     firstName,
+        //     email,
+        //     password: generatedPassword
+        // });
         
         await sendEmail(email, "Welcome to Ehtimami System", emailContent);
 
