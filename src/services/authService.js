@@ -42,7 +42,7 @@ const generateToken = (user) => {
             phone: user.phone || null,
             status: user.status,
             is_verified: user.is_verified,
-            
+             
             // ✅ Profile Details
             profile: user.profile
                 ? {

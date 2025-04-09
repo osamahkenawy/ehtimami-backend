@@ -2,6 +2,7 @@ const { PrismaClient, UserStatus } = require("@prisma/client");
 const { hashPassword, comparePassword, generateToken } = require("@/services/authService");
 const { successResponse, errorResponse } = require("@/utils/responseUtil");
 const { sendPushNotification } = require("@config/firebaseAdmin");
+const { requestPasswordReset, resetPasswordWithToken } = require("@/services/passwordService");
 
 const prisma = new PrismaClient();
 
@@ -105,4 +106,31 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { register, login };
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return errorResponse(res, "Email is required");
+        
+        await requestPasswordReset(email);
+        return successResponse(res, "Password reset email sent.");
+    } catch (err) {
+        return errorResponse(res, err.message);
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        console.log("🚨 RESET PASSWORD HIT");
+        await resetPasswordWithToken(token, newPassword);
+      
+        console.log("🔑 Token:", token);
+        console.log("🆕 New Password:", newPassword);
+        return successResponse(res, "Password has been reset.");
+    } catch (err) {
+        return errorResponse(res, err.message);
+    }
+};
+
+module.exports = { register, login, forgotPassword,
+    resetPassword, };
