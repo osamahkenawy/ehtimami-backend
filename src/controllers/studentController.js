@@ -4,27 +4,38 @@ const { successResponse, errorResponse } = require("@/utils/responseUtil");
 const getAllStudents = async (req, res) => {
   try {
     const students = await studentService.getAllStudents();
-    return successResponse(res, "All students fetched successfully", students);
-  } catch (error) {
-    return errorResponse(res, "Failed to fetch students.");
+    return successResponse(res, "Students fetched successfully", students);
+  } catch (err) {
+    return errorResponse(res, err.message);
+  }
+};
+
+const getStudentById = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const student = await studentService.getStudentById(studentId);
+    if (!student) return errorResponse(res, "Student not found", 404);
+    return successResponse(res, "Student fetched successfully", student);
+  } catch (err) {
+    return errorResponse(res, err.message);
   }
 };
 
 const getStudentsBySchoolId = async (req, res) => {
   try {
     const students = await studentService.getStudentsBySchoolId(req.params.schoolId);
-    return successResponse(res, "Students by school fetched successfully", students);
-  } catch (error) {
-    return errorResponse(res, "Failed to fetch students by school.");
+    return successResponse(res, "Students by school fetched", students);
+  } catch (err) {
+    return errorResponse(res, err.message);
   }
 };
 
 const getStudentsByClassId = async (req, res) => {
   try {
     const students = await studentService.getStudentsByClassId(req.params.classId);
-    return successResponse(res, "Students by class fetched successfully", students);
-  } catch (error) {
-    return errorResponse(res, "Failed to fetch students by class.");
+    return successResponse(res, "Students by class fetched", students);
+  } catch (err) {
+    return errorResponse(res, err.message);
   }
 };
 
@@ -32,8 +43,18 @@ const createStudent = async (req, res) => {
   try {
     const student = await studentService.createStudent(req.body);
     return successResponse(res, "Student created successfully", student);
-  } catch (error) {
-    return errorResponse(res, error.message || "Failed to create student.");
+  } catch (err) {
+    return errorResponse(res, err.message);
+  }
+};
+
+const updateStudent = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const updated = await studentService.updateStudent(studentId, req.body);
+    return successResponse(res, "Student updated successfully", updated);
+  } catch (err) {
+    return errorResponse(res, err.message);
   }
 };
 
@@ -41,35 +62,37 @@ const deleteStudent = async (req, res) => {
   try {
     await studentService.deleteStudent(req.params.studentId);
     return successResponse(res, "Student deleted successfully");
-  } catch (error) {
-    return errorResponse(res, "Failed to delete student.");
+  } catch (err) {
+    return errorResponse(res, err.message);
   }
 };
 
 const activateStudent = async (req, res) => {
   try {
     await studentService.activateStudent(req.params.studentId);
-    return successResponse(res, "Student activated successfully");
-  } catch (error) {
-    return errorResponse(res, "Failed to activate student.");
+    return successResponse(res, "Student activated");
+  } catch (err) {
+    return errorResponse(res, err.message);
   }
 };
 
 const deactivateStudent = async (req, res) => {
   try {
     await studentService.deactivateStudent(req.params.studentId);
-    return successResponse(res, "Student deactivated successfully");
-  } catch (error) {
-    return errorResponse(res, "Failed to deactivate student.");
+    return successResponse(res, "Student deactivated");
+  } catch (err) {
+    return errorResponse(res, err.message);
   }
 };
 
 module.exports = {
   getAllStudents,
+  getStudentById,
   getStudentsBySchoolId,
   getStudentsByClassId,
   createStudent,
+  updateStudent,
   deleteStudent,
   activateStudent,
-  deactivateStudent,
+  deactivateStudent
 };
