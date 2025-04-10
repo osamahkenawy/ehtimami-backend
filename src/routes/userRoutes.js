@@ -1,5 +1,5 @@
 const express = require("express");
-const { getAllUsers, getUserById , getUserByProfileId, verifyUserById, updateUserProfile } = require("@controllers/userController");
+const { getAllUsers, getUserById , getUserByProfileId, verifyUserById, updateUserProfile, getUsersByRole } = require("@controllers/userController");
 const { authenticate } = require("@middlewares/authMiddleware");
 
 
@@ -17,5 +17,6 @@ router.put("/profile/:userId", authenticate , updateUserProfile);
  */
 
 router.get("/profile/:profileId",authenticate, getUserByProfileId);
+router.get("/role/:role", authenticate, getUsersByRole);
 
 module.exports = router;

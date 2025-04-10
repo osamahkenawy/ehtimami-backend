@@ -1,4 +1,11 @@
-const { PrismaClient, UserStatus, SchoolType, EducationLevel, CurriculumType, SchoolStatus } = require("@prisma/client");
+const {
+    PrismaClient,
+    UserStatus,
+    SchoolType,
+    EducationLevel,
+    CurriculumType,
+    SchoolStatus,
+} = require("@prisma/client");
 const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
@@ -6,23 +13,20 @@ const prisma = new PrismaClient();
 async function main() {
     console.log("🚀 Seeding Database...");
 
-    // ✅ Seed Roles
-    console.log("🌟 Seeding Roles...");
-    const roles = ["admin", "teacher", "student", "parent", "school_manager"];
-    
+    // ✅ Roles
+    const roles = ["admin", "teacher", "student", "parent", "school_manager", "employee"];
     for (const role of roles) {
         await prisma.role.upsert({
             where: { name: role },
             update: {},
-            create: { name: role }
+            create: { name: role },
         });
     }
-    console.log("✅ Roles Seeded!");
-    console.log("👑 Seeding Default Admin...");
+
+    // ✅ Default Admin
     const adminEmail = "admin@ehtimami.com";
     const hashedAdminPassword = await bcrypt.hash("Ehtimami@123", 10);
-    
-    let adminUser = await prisma.user.upsert({
+    const adminUser = await prisma.user.upsert({
         where: { email: adminEmail },
         update: {},
         create: {
@@ -33,47 +37,33 @@ async function main() {
             status: UserStatus.ACTIVE,
             is_verified: true,
             roles: { create: [{ role: { connect: { name: "admin" } } }] },
-            profile: {
-                create: {
-                    bio: "System Administrator"
-                }
-            }
-        }
+            profile: { create: { bio: "Super Admin" } },
+        },
     });
-    console.log("✅ Default Admin Account Created!");
-    // ✅ Seed School Manager
-    console.log("👨‍🏫 Seeding School Manager...");
-    const managerEmail = "manager@school.com";
-    const hashedPassword = await bcrypt.hash("School123456", 10);
 
-    let managerUser = await prisma.user.upsert({
+    // ✅ School Manager
+    const managerEmail = "manager@school.com";
+    const managerUser = await prisma.user.upsert({
         where: { email: managerEmail },
         update: {},
         create: {
             firstName: "School",
             lastName: "Manager",
             email: managerEmail,
-            password: hashedPassword,
+            password: await bcrypt.hash("School123456", 10),
             status: UserStatus.ACTIVE,
             roles: { create: [{ role: { connect: { name: "school_manager" } } }] },
             profile: {
                 create: {
                     bio: "Principal of Ehtimami School",
-                    avatar: "https://example.com/avatar.jpg"
-                }
-            }
-        }
+                    avatar: "https://example.com/avatar.jpg",
+                },
+            },
+        },
     });
 
-    if (!managerUser) {
-        throw new Error("❌ Failed to create or retrieve School Manager");
-    }
-
-    console.log("✅ School Manager Seeded!");
-
-    // ✅ Seed School
-    console.log("🏫 Seeding School...");
-    let existingSchool = await prisma.school.upsert({
+    // ✅ School
+    const school = await prisma.school.upsert({
         where: { school_unique_id: "SCH-0001" },
         update: {},
         create: {
@@ -86,65 +76,39 @@ async function main() {
             school_city: "Riyadh",
             school_district: "Al Olaya",
             school_type: SchoolType.INTERNATIONAL,
-            education_level: EducationLevel.PRIMARY, // ✅ Fix: Enum Reference
-            curriculum: CurriculumType.SAUDI_NATIONAL, // ✅ Fix: Enum Reference
-            status: SchoolStatus.ACTIVE // ✅ Fix: Enum Reference
-        }
+            education_level: EducationLevel.PRIMARY,
+            curriculum: CurriculumType.SAUDI_NATIONAL,
+            status: SchoolStatus.ACTIVE,
+        },
     });
 
-    if (!existingSchool) {
-        throw new Error("❌ Failed to create or retrieve School");
-    }
-
-    console.log("✅ School Seeded!");
-
-    // ✅ Assign School Manager as Admin
-    console.log("🔗 Assigning School Manager as Admin...");
     await prisma.schoolAdmin.upsert({
         where: { userId: managerUser.id },
         update: {},
-        create: {
-            userId: managerUser.id,
-            schoolId: existingSchool.id,
-            role: "admin"
-        }
+        create: { userId: managerUser.id, schoolId: school.id, role: "admin" },
     });
 
-    console.log("✅ School Manager Assigned as School Admin!");
-
-    // ✅ Seed Teacher
-    console.log("👨‍🏫 Seeding Teacher...");
-    const teacherEmail = "teacher@school.com";
-    const hashedTeacherPassword = await bcrypt.hash("Teacher123456", 10);
-
-    let teacherUser = await prisma.user.upsert({
-        where: { email: teacherEmail },
+    // ✅ Teacher
+    const teacherUser = await prisma.user.upsert({
+        where: { email: "teacher@school.com" },
         update: {},
         create: {
             firstName: "John",
             lastName: "Doe",
-            email: teacherEmail,
-            password: hashedTeacherPassword,
+            email: "teacher@school.com",
+            password: await bcrypt.hash("Teacher123456", 10),
             status: UserStatus.ACTIVE,
             roles: { create: [{ role: { connect: { name: "teacher" } } }] },
             profile: {
                 create: {
                     bio: "Math Teacher",
-                    avatar: "https://example.com/teacher-avatar.jpg"
-                }
-            }
-        }
+                    avatar: "https://example.com/teacher-avatar.jpg",
+                },
+            },
+        },
     });
 
-    if (!teacherUser) {
-        throw new Error("❌ Failed to create or retrieve Teacher");
-    }
-
-    console.log("✅ Teacher Seeded!");
-
-    // ✅ Seed Class
-    console.log("📚 Seeding Class...");
-    await prisma.class.upsert({
+    const mathClass = await prisma.class.upsert({
         where: { code: "MATH101" },
         update: {},
         create: {
@@ -156,12 +120,106 @@ async function main() {
             academic_year: "2024-2025",
             capacity: 30,
             roomNumber: "101",
-            schoolId: existingSchool.id,
-            schedule: {} // ✅ Provide Empty JSON for schedule
-        }
+            schoolId: school.id,
+            schedule: {},
+        },
     });
 
-    console.log("✅ Class 'Math Class' Created!");
+    // ✅ Assign Teacher to Class
+    await prisma.classTeacher.upsert({
+        where: {
+            teacherId_classId: {
+                teacherId: teacherUser.id,
+                classId: mathClass.id,
+            },
+        },
+        update: {},
+        create: {
+            teacherId: teacherUser.id,
+            classId: mathClass.id,
+        },
+    });
+    const hashedPassword = await bcrypt.hash("Parent123456", 10);
+
+    // ✅ Parent
+    const parentUser = await prisma.user.upsert({
+        where: { email: "parent@school.com" }, // or whatever email you're using
+        update: {},
+        create: {
+          firstName: "Parent",
+          lastName: "User",
+          email: "parent@school.com",
+          password: hashedPassword,
+          status: UserStatus.ACTIVE,
+          is_verified: true,
+          roles: {
+            create: [{ role: { connect: { name: "parent" } } }],
+          },
+          profile: {
+            create: {
+              bio: "Parent of a student",
+              avatar: "https://example.com/parent-avatar.jpg",
+            },
+          },
+        },
+      });
+      
+
+    const parent = await prisma.parent.create({
+        data: { userId: parentUser.id },
+    });
+
+    // ✅ Student
+    const studentUser = await prisma.user.create({
+        data: {
+            firstName: "Khalid",
+            lastName: "Ali",
+            email: "student@ehtimami.com",
+            password: await bcrypt.hash("Student123456", 10),
+            status: UserStatus.ACTIVE,
+            roles: { create: [{ role: { connect: { name: "student" } } }] },
+            profile: { create: { bio: "Grade 6 student" } },
+        },
+    });
+
+    const student = await prisma.student.create({
+        data: {
+            userId: studentUser.id,
+            student_no: "STU-0001",
+            grade: "6",
+            classId: mathClass.id,
+            schoolId: school.id,
+        },
+    });
+
+    // Link student to parent
+    await prisma.parent.update({
+        where: { id: parent.id },
+        data: {
+            students: { connect: { id: student.id } },
+        },
+    });
+
+    // ✅ Employee (Non-teacher)
+    await prisma.user.create({
+        data: {
+            firstName: "Ahmad",
+            lastName: "Yousef",
+            email: "employee@ehtimami.com",
+            password: await bcrypt.hash("Employee123456", 10),
+            status: UserStatus.ACTIVE,
+            roles: { create: [{ role: { connect: { name: "employee" } } }] },
+            profile: { create: { bio: "IT Support" } },
+            employee: {
+                create: {
+                    position: "IT Technician",
+                    schoolId: school.id,
+                },
+            },
+        },
+    });
+
+    console.log("✅ Seeding Completed!");
 }
 
 main()

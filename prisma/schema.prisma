@@ -7,6 +7,58 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+  SUSPENDED
+  PENDING_APPROVAL
+}
+
+enum SchoolStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SchoolType {
+  PRIVATE
+  PUBLIC
+  INTERNATIONAL
+  SPECIAL_NEEDS
+}
+
+enum EducationLevel {
+  ALL
+  PRIMARY
+  INTERMEDIATE
+  SECONDARY
+  KINDERGARTEN
+}
+
+enum CurriculumType {
+  SAUDI_NATIONAL
+  IB
+  AMERICAN
+  BRITISH
+  FRENCH
+  OTHER
+}
+
+enum DocumentType {
+  ID_PROOF
+  CERTIFICATE
+  CONTRACT
+  REPORT_CARD
+  CV
+  OTHER
+}
+
 model User {
   id                  Int        @id @default(autoincrement())
   firstName           String     @db.VarChar(50)
@@ -22,21 +74,24 @@ model User {
   two_factor_enabled  Boolean    @default(false)
   two_factor_secret   String?    @db.VarChar(255)
   status              UserStatus @default(ACTIVE)
-  parentId            Int? // ✅ Parent-child relationship
+  parentId            Int?
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
-  profile UserProfile?
-
-  schools        UserSchool[]
-  roles          UserAccessRoles[]
-  teacherClasses ClassTeacher[]
-
-  parent              User?                @relation("ParentChild", fields: [parentId], references: [id], onDelete: SetNull)
-  children            User[]               @relation("ParentChild")
-  // ✅ Added relation for SchoolAdmin (Fixes the error)
+  profile             UserProfile?
+  schools             UserSchool[]
+  roles               UserAccessRoles[]
+  teacherClasses      ClassTeacher[]
   managedSchools      SchoolAdmin[]
   passwordResetTokens PasswordResetToken[]
+  documents           Document[]
+
+  parent              User? @relation("ParentChild", fields: [parentId], references: [id], onDelete: SetNull)
+  children            User[] @relation("ParentChild")
+
+  student             Student?
+  parentProfile       Parent?
+  employee            Employee?
 }
 
 model UserProfile {
@@ -57,27 +112,32 @@ model UserProfile {
   nationality        String        @default("Unknown") @db.VarChar(100)
   birth_date         DateTime?
   join_date          DateTime      @default(now())
-  gender             Int           @default(1) // 1 = Male, 2 = Female, 3 = Other
+  gender             Int           @default(1)
   address            String?       @db.Text
   latitude           Float?
   longitude          Float?
-  emergency_contacts Json? // ✅ New: Emergency contact list
-  profile_visibility String        @default("public") // ✅ public, private, school-only
+  emergency_contacts Json?
+  profile_visibility String        @default("public")
   updatedAt          DateTime      @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum MaritalStatus {
-  SINGLE
-  MARRIED
-  DIVORCED
+model Document {
+  id         Int          @id @default(autoincrement())
+  userId     Int
+  name       String
+  fileUrl    String
+  type       DocumentType
+  role       String
+  uploadedAt DateTime      @default(now())
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Role {
-  id   Int    @id @default(autoincrement())
-  name String @unique @db.VarChar(50)
-
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(50)
   users UserAccessRoles[]
 }
 
@@ -101,14 +161,6 @@ model UserSchool {
   @@id([userId, schoolId])
 }
 
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  TERMINATED
-  SUSPENDED
-  PENDING_APPROVAL
-}
-
 model School {
   id               Int            @id @default(autoincrement())
   school_unique_id String         @unique
@@ -129,9 +181,11 @@ model School {
   updated_at       DateTime       @updatedAt
   status           SchoolStatus   @default(ACTIVE)
 
-  users   UserSchool[]
-  classes Class[]
-  admins  SchoolAdmin[] // ✅ New: Allows multiple admins
+  users     UserSchool[]
+  classes   Class[]
+  admins    SchoolAdmin[]
+  students  Student[]
+  employees Employee[]
 }
 
 model SchoolAdmin {
@@ -144,37 +198,25 @@ model SchoolAdmin {
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
-enum SchoolStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum SchoolType {
-  PRIVATE
-  PUBLIC
-  INTERNATIONAL
-  SPECIAL_NEEDS
-}
-
 model Class {
   id              Int      @id @default(autoincrement())
-  code            String   @unique // ✅ Ensure this is marked as unique
+  code            String   @unique
   name            String
   description     String?  @db.Text
   gradeLevel      String?
-  section         String? // ✅ New: Section name
-  subject         String   @default("General") @db.VarChar(100)
+  section         String?
+  subject         String   @default("General")
   semester        Int      @default(1)
-  academic_year   String   @default("2024-2025") @db.VarChar(20)
-  teaching_method String   @default("in-person") // ✅ online, in-person, hybrid
+  academic_year   String   @default("2024-2025")
+  teaching_method String   @default("in-person")
   capacity        Int?
   max_students    Int      @default(30)
   roomNumber      String?
-  class_logo      String?  @db.VarChar(255)
+  class_logo      String?
   status          String   @default("active")
   days_of_week    Json?
-  start_time      String   @default("08:00:00") @db.VarChar(10)
-  end_time        String   @default("10:00:00") @db.VarChar(10)
+  start_time      String   @default("08:00:00")
+  end_time        String   @default("10:00:00")
   schedule        Json?
   credits         Int?
   startDate       DateTime @default(now())
@@ -182,11 +224,22 @@ model Class {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   schoolId        Int
-  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  teachers ClassTeacher[]
+  school          School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teachers        ClassTeacher[]
+  studentClasses  StudentClass[] // ✅ New: many-to-many relation with Student
+  attendances     Attendance[]
 }
 
+model StudentClass {
+  studentId Int
+  classId   Int
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, classId])
+}
 model ClassTeacher {
   teacherId Int
   classId   Int
@@ -197,21 +250,50 @@ model ClassTeacher {
   @@id([teacherId, classId])
 }
 
-enum EducationLevel {
-  ALL
-  PRIMARY
-  INTERMEDIATE
-  SECONDARY
-  KINDERGARTEN
+model Student {
+  id         Int     @id @default(autoincrement())
+  userId     Int     @unique
+  schoolId   Int
+  classId    Int
+  student_no String  @unique
+  grade      String
+  section    String?
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parents    Parent[]
+  attendances Attendance[]
+  studentClasses StudentClass[] // ✅ New many-to-many link
+
 }
 
-enum CurriculumType {
-  SAUDI_NATIONAL
-  IB
-  AMERICAN
-  BRITISH
-  FRENCH
-  OTHER
+model Parent {
+  id      Int @id @default(autoincrement())
+  userId  Int @unique
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students Student[]
+}
+
+model Employee {
+  id       Int    @id @default(autoincrement())
+  userId   Int    @unique
+  position String
+  schoolId Int
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  classId   Int
+  date      DateTime
+  status    String
+
+  student Student @relation(fields: [studentId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
 }
 
 model PasswordResetToken {
@@ -222,3 +304,4 @@ model PasswordResetToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
