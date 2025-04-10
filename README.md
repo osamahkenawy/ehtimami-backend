@@ -16,7 +16,6 @@ This is the backend service for the **Ehtimami School Management System**, built
 - **ORM:** Prisma
 - **Databases:** MySQL & MongoDB
 - **Authentication:** JWT
-- **Caching:** Redis (Optional)
 
 ---
 
