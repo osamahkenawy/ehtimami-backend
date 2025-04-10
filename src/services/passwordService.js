@@ -24,7 +24,7 @@ const requestPasswordReset = async (email) => {
         },
     });
 
-    const resetLink = `https://your-frontend.com/reset-password?token=${token}`;
+    const resetLink = `http://localhost:5173/auth/reset-password?token=${token}`;
     const html = getEmailTemplate("forgotPassword", {
         firstName: user.firstName,
         resetLink,

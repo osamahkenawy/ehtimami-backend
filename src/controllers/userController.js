@@ -72,12 +72,23 @@ const updateUserProfile = async (req, res) => {
         return errorResponse(res, error.message || "Failed to update profile.");
     }
 };
-
+const getUsersByRole = async (req, res) => {
+    try {
+      const roleName = req.params.role;
+      const users = await userService.getUsersByRole(roleName);
+      return successResponse(res, `Users with role ${roleName} fetched successfully`, users);
+    } catch (error) {
+      console.error("Error fetching users by role:", error);
+      return errorResponse(res, "An unexpected error occurred.");
+    }
+  };
+  
 
 module.exports = {
     getAllUsers,
     getUserById,
     getUserByProfileId,
     verifyUserById,
-    updateUserProfile
+    updateUserProfile,
+    getUsersByRole
 };
