@@ -4,70 +4,57 @@ const bcrypt = require("bcrypt");
 const { studentSchema, updateStudentSchema } = require("@/validators/student.schema");
 
 const prisma = new PrismaClient();
-
-const getAllStudents = async () => {
-  return prisma.student.findMany({
+const studentInclude = {
+  user: {
     include: {
-      user: { include: { profile: true, roles: { include: { role: true } } } },
-      school: true,
-      studentClasses: { include: { class: true } },
-      parents: {
+      profile: true,
+      roles: { include: { role: true } }
+    }
+  },
+  school: true,
+  mainClass: true,
+  studentClasses: {
+    include: {
+      class: true
+    }
+  },
+  parents: {
+    include: {
+      user: {
         include: {
-          user: { include: { profile: true } }
+          profile: true
         }
       }
     }
-  });
+  }
+};
+const getAllStudents = async () => {
+  return prisma.student.findMany({ include: studentInclude });
 };
 
 const getStudentsBySchoolId = async (schoolId) => {
   return prisma.student.findMany({
     where: { schoolId: Number(schoolId) },
-    include: {
-      user: { include: { profile: true } },
-      studentClasses: { include: { class: true } },
-      parents: {
-        include: {
-          user: { include: { profile: true } }
-        }
-      }
-    }
+    include: studentInclude
   });
 };
 
 const getStudentsByClassId = async (classId) => {
-  return prisma.studentClass.findMany({
-    where: { classId: Number(classId) },
-    include: {
-      student: {
-        include: {
-          user: { include: { profile: true, roles: { include: { role: true } } } },
-          school: true,
-          studentClasses: { include: { class: true } },
-          parents: {
-            include: {
-              user: { include: { profile: true } }
-            }
-          }
-        }
+  return prisma.student.findMany({
+    where: {
+      studentClasses: {
+        some: { classId: Number(classId) }
       }
-    }
+    },
+    include: studentInclude
   });
 };
+
 
 const getStudentById = async (userId) => {
   return prisma.student.findUnique({
     where: { userId: Number(userId) },
-    include: {
-      user: { include: { profile: true, roles: { include: { role: true } } } },
-      school: true,
-      studentClasses: { include: { class: true } },
-      parents: {
-        include: {
-          user: { include: { profile: true } }
-        }
-      }
-    }
+    include: studentInclude
   });
 };
 
@@ -92,6 +79,7 @@ const createStudent = async (data) => {
     const message = parsed.error.errors.map(err => err.message).join(", ");
     throw new Error(message);
   }
+
   const {
     firstName, lastName, email, password, phone, schoolId, grade, section, student_no,
     classIds = [], parentUserIds = [], profile = {}
@@ -123,13 +111,16 @@ const createStudent = async (data) => {
       }
     });
 
+    const mainClassId = classIds.length > 0 ? classIds[0] : null;
+
     const student = await tx.student.create({
       data: {
         userId: user.id,
         schoolId,
         grade,
         section,
-        student_no
+        student_no,
+        mainClassId
       }
     });
 
@@ -161,6 +152,7 @@ const createStudent = async (data) => {
     return student;
   });
 };
+
 
 const updateStudent = async (userId, updateData) => {
   const parsed = updateStudentSchema.safeParse(updateData);
@@ -204,12 +196,15 @@ const updateStudent = async (userId, updateData) => {
       }
     });
 
+    const mainClassId = classIds.length > 0 ? classIds[0] : student.mainClassId;
+
     await tx.student.update({
       where: { id: student.id },
       data: {
         grade,
         section,
-        student_no
+        student_no,
+        mainClassId
       }
     });
 
@@ -224,12 +219,14 @@ const updateStudent = async (userId, updateData) => {
       include: {
         user: { include: { profile: true, roles: { include: { role: true } } } },
         school: true,
+        mainClass: true,
         studentClasses: { include: { class: true } },
         parents: { include: { user: { include: { profile: true } } } }
       }
     });
   });
 };
+
 
 const deleteStudent = async (studentId) => {
   const student = await prisma.student.findUnique({ where: { id: Number(studentId) } });

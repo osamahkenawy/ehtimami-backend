@@ -86,12 +86,12 @@ model User {
   passwordResetTokens PasswordResetToken[]
   documents           Document[]
 
-  parent              User? @relation("ParentChild", fields: [parentId], references: [id], onDelete: SetNull)
-  children            User[] @relation("ParentChild")
+  parent   User?  @relation("ParentChild", fields: [parentId], references: [id], onDelete: SetNull)
+  children User[] @relation("ParentChild")
 
-  student             Student?
-  parentProfile       Parent?
-  employee            Employee?
+  student       Student?
+  parentProfile Parent?
+  employee      Employee?
 }
 
 model UserProfile {
@@ -119,7 +119,7 @@ model UserProfile {
   emergency_contacts Json?
   profile_visibility String        @default("public")
   updatedAt          DateTime      @default(now()) @updatedAt
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Document {
@@ -129,14 +129,14 @@ model Document {
   fileUrl    String
   type       DocumentType
   role       String
-  uploadedAt DateTime      @default(now())
+  uploadedAt DateTime     @default(now())
 
-  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Role {
-  id    Int    @id @default(autoincrement())
-  name  String @unique @db.VarChar(50)
+  id    Int               @id @default(autoincrement())
+  name  String            @unique @db.VarChar(50)
   users UserAccessRoles[]
 }
 
@@ -198,35 +198,35 @@ model SchoolAdmin {
 }
 
 model Class {
-  id              Int      @id @default(autoincrement())
-  code            String   @unique
+  id              Int            @id @default(autoincrement())
+  code            String         @unique
   name            String
-  description     String?  @db.Text
+  description     String?        @db.Text
   gradeLevel      String?
   section         String?
-  subject         String   @default("General")
-  semester        Int      @default(1)
-  academic_year   String   @default("2024-2025")
-  teaching_method String   @default("in-person")
+  subject         String         @default("General")
+  semester        Int            @default(1)
+  academic_year   String         @default("2024-2025")
+  teaching_method String         @default("in-person")
   capacity        Int?
-  max_students    Int      @default(30)
+  max_students    Int            @default(30)
   roomNumber      String?
   class_logo      String?
-  status          String   @default("active")
+  status          String         @default("active")
   days_of_week    Json?
-  start_time      String   @default("08:00:00")
-  end_time        String   @default("10:00:00")
+  start_time      String         @default("08:00:00")
+  end_time        String         @default("10:00:00")
   schedule        Json?
   credits         Int?
-  startDate       DateTime @default(now())
-  endDate         DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  startDate       DateTime       @default(now())
+  endDate         DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   schoolId        Int
-
   school          School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   teachers        ClassTeacher[]
-  studentClasses  StudentClass[] // ✅ New: many-to-many relation with Student
+  studentClasses  StudentClass[]
+  mainStudents    Student[]      @relation("MainClass") // ✅ Unique relation name
   attendances     Attendance[]
 }
 
@@ -239,6 +239,7 @@ model StudentClass {
 
   @@id([studentId, classId])
 }
+
 model ClassTeacher {
   teacherId Int
   classId   Int
@@ -250,24 +251,36 @@ model ClassTeacher {
 }
 
 model Student {
-  id         Int     @id @default(autoincrement())
-  userId     Int     @unique
-  schoolId   Int
-  student_no String  @unique
-  grade      String
-  section    String?
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  schoolId    Int
+  student_no  String  @unique
+  grade       String
+  section     String?
+  mainClassId Int?
+  mainClass   Class?  @relation("MainClass", fields: [mainClassId], references: [id])
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  parents    Parent[]
-  attendances Attendance[]
-  studentClasses StudentClass[] // ✅ New many-to-many link
+  admission_date    DateTime?
+  previous_school   String?
+  guardian_name     String?
+  guardian_relation String?
+  guardian_contact  String?
+  is_special_needs  Boolean?  @default(false)
+  learning_style    String?
+  health_notes      String?
+  device_id         String?
+  student_category  String?
 
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentClasses StudentClass[]
+  parents        Parent[]
+  attendances    Attendance[]
 }
 
 model Parent {
-  id      Int @id @default(autoincrement())
-  userId  Int @unique
+  id     Int @id @default(autoincrement())
+  userId Int @unique
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   students Student[]
@@ -302,4 +315,3 @@ model PasswordResetToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
-

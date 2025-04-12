@@ -37,8 +37,8 @@ const getTeachersBySchoolController = async (req, res) => {
     try {
         return await getTeachersBySchool(req, res);
     } catch (error) {
-        console.error("Controller Error:", error);
-        return errorResponse(res, error.message || "Failed to fetch teachers.");
+      console.error("Controller Error:", error);
+      return errorResponse(res, error.message || "Failed to fetch teachers by school.");
     }
 };
 const getTeacherByIdController = async (req, res) => {
