@@ -119,7 +119,6 @@ model UserProfile {
   emergency_contacts Json?
   profile_visibility String        @default("public")
   updatedAt          DateTime      @default(now()) @updatedAt
-
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -254,7 +253,6 @@ model Student {
   id         Int     @id @default(autoincrement())
   userId     Int     @unique
   schoolId   Int
-  classId    Int
   student_no String  @unique
   grade      String
   section    String?
