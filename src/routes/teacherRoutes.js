@@ -14,7 +14,7 @@ router.post("/assign-classes",authenticate, assignTeacherToClassesController);
 // ✅ Get All Teachers
 router.get("/", authenticate, getAllTeachersController);
 
-router.post("/by-school",authenticate, checkSchoolExistsById, getTeachersBySchoolController);
+router.post("/by-school", authenticate, checkSchoolExistsById, getTeachersBySchoolController);
 router.get("/:teacherId",authenticate, getTeacherByIdController);
 
 // ✅ Delete Teacher

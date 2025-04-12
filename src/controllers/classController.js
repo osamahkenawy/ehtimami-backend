@@ -39,6 +39,8 @@ const updateClass = async (req, res) => {
     } catch (error) {
         if (error.code === "P2025") return errorResponse(res, "Class not found.");
         if (error.code === "P2002") return errorResponse(res, "Duplicate entry detected.");
+        console.error("UPDATE ERROR:", error); // ← You need this to see what’s really happening
+
         return errorResponse(res, "An unexpected error occurred while updating the class.");
     }
 };

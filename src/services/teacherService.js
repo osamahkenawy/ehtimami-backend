@@ -255,6 +255,37 @@ const getAllTeachers = async (req, res) => {
     return errorResponse(res, "An unexpected error occurred.");
   }
 };
+const getTeachersBySchool = async (req, res) => {
+  try {
+    const { schoolId } = req.body;
+
+    if (!schoolId || isNaN(schoolId)) {
+      return errorResponse(res, "Invalid or missing school ID.");
+    }
+
+    const teachers = await prisma.user.findMany({
+      where: {
+        roles: {
+          some: { role: { name: "teacher" } }
+        },
+        schools: {
+          some: { schoolId: Number(schoolId) }
+        }
+      },
+      include: {
+        profile: true,
+        schools: { include: { school: true } },
+        teacherClasses: { include: { class: true } },
+        roles: { include: { role: true } }
+      }
+    });
+
+    return successResponse(res, "Teachers fetched successfully.", teachers);
+  } catch (error) {
+    console.error("Error fetching teachers by school:", error);
+    return errorResponse(res, "An unexpected error occurred.");
+  }
+};
 
 const getTeacherById = async (req, res) => {
   try {
@@ -286,5 +317,6 @@ module.exports = {
   updateTeacher,
   deleteTeacher,
   getAllTeachers,
-  getTeacherById
+  getTeacherById,
+  getTeachersBySchool
 };

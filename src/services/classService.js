@@ -89,14 +89,13 @@ const createClass = async (data) => {
         academic_year: classData.academic_year,
         teaching_method: classData.teaching_method,
         capacity: classData.capacity,
+        max_students: classData.capacity || 1,
         max_students: classData.max_students,
         roomNumber: classData.roomNumber || "",
         class_logo: classData.class_logo || null,
         status: classData.status,
         days_of_week: JSON.stringify(daysOfWeek),
         schedule: JSON.stringify(classData.schedule || {}),
-        start_time: classData.start_time,
-        end_time: classData.end_time,
         credits: classData.credits,
         startDate: classData.startDate ? new Date(classData.startDate) : new Date(),
         endDate: classData.endDate ? new Date(classData.endDate) : new Date(),
@@ -166,13 +165,27 @@ const getClassesBySchoolId = async (schoolId) => {
     include: defaultInclude,
   });
 };
-
 const updateClass = async (classId, updateData) => {
+  console.log("UPDATE PAYLOAD:", updateData); // 🧪 Debug log
+
+  const {
+    schoolId,
+    teacherId, // ignored in main update, handled separately if needed
+    studentIds, // optional, not directly updated here
+    ...rest
+  } = updateData;
+
   return prisma.class.update({
     where: { id: classId },
-    data: updateData,
+    data: {
+      ...rest,
+      school: {
+        connect: { id: schoolId }
+      }
+    }
   });
 };
+
 
 const deleteClass = async (classId) => {
   return prisma.class.delete({

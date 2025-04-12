@@ -6,10 +6,11 @@ const classSchema = z.object({
     gradeLevel: z.string().min(1, "Grade level is required"),
     subject: z.string().min(2, "Subject name is required").default("General"),
     semester: z.number().min(1).default(1),
-    academic_year: z.string().default("2024-2025"),
+    academic_year: z.string().min(7),
     teaching_method: z.enum(["online", "in-person", "hybrid"]).default("in-person"),
-    capacity: z.number().min(1).optional().default(30),
-    max_students: z.number().min(1).optional().default(35),
+    capacity: z.number().min(1, "Capacity must be at least 1"),
+  max_students: z.number().min(1, "Max students must be at least 1"),
+  credits: z.number().min(1, "Credits must be at least 1"),
     roomNumber: z.string().optional(),
     class_logo: z.string().optional(),
     status: z.enum(["active", "inactive"]).default("active"),
@@ -33,18 +34,10 @@ const messages = {
 
 // ✅ Define Class Update Schema
 const classUpdateSchema = z.object({
-  id: z.string().refine((id) => !isNaN(Number(id)), {
+  id: z.string().refine((id) => !isNaN(id), {
     message: messages.INVALID_ID("Class ID"),
   }),
-  name: z.string().optional(),
-  gradeLevel: z.string().optional(),
-  capacity: z.number().int().positive(messages.POSITIVE("Capacity")).optional(),
-  roomNumber: z.string().optional(),
-  status: z.enum(["active", "inactive"], {
-    errorMap: () => ({ message: messages.ENUM("Status") })
-  }).optional(),
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
+  name: z.string().min(2, "Class name must be at least 2 characters long")
 });
 
 const classCreateSchema = z.object({

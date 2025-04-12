@@ -26,7 +26,7 @@ router.get('/', getAllClasses);
 router.get('/:id', getClassById);
 
 // ✅ Update a class by ID
-router.put('/:id', validateClassUpdate, updateClass);
+router.put('/:id',  updateClass);
 
 // ✅ Delete a class by ID
 router.delete('/:id', deleteClass);
