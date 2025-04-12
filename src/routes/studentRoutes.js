@@ -8,7 +8,8 @@ const {
   updateStudent,
   deleteStudent,
   activateStudent,
-  deactivateStudent
+  deactivateStudent,
+  connectParentsToStudent
 } = require("@/controllers/studentController");
 
 const router = express.Router();
@@ -22,5 +23,6 @@ router.put("/:studentId", updateStudent);
 router.delete("/:studentId", deleteStudent);
 router.patch("/:studentId/activate", activateStudent);
 router.patch("/:studentId/deactivate", deactivateStudent);
+router.post("/:studentId/parents", connectParentsToStudent);
 
 module.exports = router;

@@ -85,6 +85,23 @@ const deactivateStudent = async (req, res) => {
   }
 };
 
+
+const connectParentsToStudent = async (req, res) => {
+    const { studentId } = req.params;
+    const { parentUserIds } = req.body;
+  
+    try {
+      if (!Array.isArray(parentUserIds) || parentUserIds.length === 0) {
+        return res.status(400).json({ message: "parentUserIds must be a non-empty array." });
+      }
+  
+      await studentService.connectStudentWithParents(Number(studentId), parentUserIds);
+      return res.status(200).json({ message: "Parents connected successfully." });
+    } catch (error) {
+      return res.status(500).json({ message: error.message || "Failed to connect parents." });
+    }
+  };
+
 module.exports = {
   getAllStudents,
   getStudentById,
@@ -94,5 +111,6 @@ module.exports = {
   updateStudent,
   deleteStudent,
   activateStudent,
-  deactivateStudent
+  deactivateStudent,
+  connectParentsToStudent
 };

@@ -10,7 +10,12 @@ const getAllStudents = async () => {
     include: {
       user: { include: { profile: true, roles: { include: { role: true } } } },
       school: true,
-      studentClasses: { include: { class: true } }
+      studentClasses: { include: { class: true } },
+      parents: {
+        include: {
+          user: { include: { profile: true } }
+        }
+      }
     }
   });
 };
@@ -20,7 +25,12 @@ const getStudentsBySchoolId = async (schoolId) => {
     where: { schoolId: Number(schoolId) },
     include: {
       user: { include: { profile: true } },
-      studentClasses: { include: { class: true } }
+      studentClasses: { include: { class: true } },
+      parents: {
+        include: {
+          user: { include: { profile: true } }
+        }
+      }
     }
   });
 };
@@ -33,21 +43,46 @@ const getStudentsByClassId = async (classId) => {
         include: {
           user: { include: { profile: true, roles: { include: { role: true } } } },
           school: true,
-          studentClasses: { include: { class: true } }
+          studentClasses: { include: { class: true } },
+          parents: {
+            include: {
+              user: { include: { profile: true } }
+            }
+          }
         }
       }
     }
   });
 };
 
-const getStudentById = async (studentId) => {
+const getStudentById = async (userId) => {
   return prisma.student.findUnique({
-    where: { id: Number(studentId) },
+    where: { userId: Number(userId) },
     include: {
       user: { include: { profile: true, roles: { include: { role: true } } } },
       school: true,
-      studentClasses: { include: { class: true } }
+      studentClasses: { include: { class: true } },
+      parents: {
+        include: {
+          user: { include: { profile: true } }
+        }
+      }
     }
+  });
+};
+
+const connectStudentWithParents = async (studentId, parentUserIds = []) => {
+  const student = await prisma.student.findUnique({ where: { id: studentId } });
+  if (!student) throw new Error("Student not found");
+
+  return prisma.$transaction(async (tx) => {
+    await tx.parent.deleteMany({ where: { students: { some: { id: studentId } }, userId: { in: parentUserIds } } });
+    const data = parentUserIds.map(userId => ({ userId, students: { connect: { id: studentId } } }));
+    return Promise.all(data.map(p => tx.parent.upsert({
+      where: { userId: p.userId },
+      update: { students: { connect: { id: studentId } } },
+      create: p
+    })));
   });
 };
 
@@ -59,7 +94,7 @@ const createStudent = async (data) => {
   }
   const {
     firstName, lastName, email, password, phone, schoolId, grade, section, student_no,
-    classIds = [], profile = {}
+    classIds = [], parentUserIds = [], profile = {}
   } = parsed.data;
 
   if (profile.birth_date) profile.birth_date = new Date(profile.birth_date);
@@ -119,21 +154,34 @@ const createStudent = async (data) => {
       await tx.studentClass.createMany({ data: studentClassLinks });
     }
 
+    if (parentUserIds.length > 0) {
+      await connectStudentWithParents(student.id, parentUserIds);
+    }
+
     return student;
   });
 };
 
-const updateStudent = async (studentId, updateData) => {
+const updateStudent = async (userId, updateData) => {
   const parsed = updateStudentSchema.safeParse(updateData);
   if (!parsed.success) {
     const message = parsed.error.errors.map(err => err.message).join(", ");
     throw new Error(message);
   }
+
   const {
-    firstName, lastName, email, phone, profile = {}, grade, section, student_no, classIds = []
+    firstName,
+    lastName,
+    email,
+    phone,
+    profile = {},
+    grade,
+    section,
+    student_no,
+    classIds = []
   } = parsed.data;
 
-  const student = await prisma.student.findUnique({ where: { id: Number(studentId) } });
+  const student = await prisma.student.findUnique({ where: { userId: Number(userId) } });
   if (!student) throw new Error("Student not found");
 
   if (profile.birth_date) profile.birth_date = new Date(profile.birth_date);
@@ -141,7 +189,7 @@ const updateStudent = async (studentId, updateData) => {
 
   return prisma.$transaction(async (tx) => {
     await tx.user.update({
-      where: { id: student.userId },
+      where: { id: Number(userId) },
       data: {
         firstName,
         lastName,
@@ -176,7 +224,8 @@ const updateStudent = async (studentId, updateData) => {
       include: {
         user: { include: { profile: true, roles: { include: { role: true } } } },
         school: true,
-        studentClasses: { include: { class: true } }
+        studentClasses: { include: { class: true } },
+        parents: { include: { user: { include: { profile: true } } } }
       }
     });
   });
@@ -188,6 +237,7 @@ const deleteStudent = async (studentId) => {
 
   return prisma.$transaction(async (tx) => {
     await tx.studentClass.deleteMany({ where: { studentId: student.id } });
+    await tx.parent.deleteMany({ where: { students: { some: { id: student.id } } } });
     await tx.userProfile.deleteMany({ where: { userId: student.userId } });
     await tx.student.delete({ where: { id: student.id } });
     await tx.user.delete({ where: { id: student.userId } });
@@ -214,5 +264,6 @@ module.exports = {
   updateStudent,
   deleteStudent,
   activateStudent,
-  deactivateStudent
+  deactivateStudent,
+  connectStudentWithParents
 };

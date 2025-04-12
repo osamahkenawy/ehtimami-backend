@@ -13,8 +13,22 @@ const profileSchema = z.object({
   interests: z.array(z.string()).optional(),
   marital_status: z.enum(["SINGLE", "MARRIED", "DIVORCED"]).optional(),
   nationality: z.string().optional(),
-  birth_date: z.string().optional(),
-  join_date: z.string().optional(),
+
+  // ✅ Parse date strings to Date or null
+  birth_date: z.string()
+    .transform((val) => {
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? null : date;
+    })
+    .optional(),
+
+  join_date: z.string()
+    .transform((val) => {
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? null : date;
+    })
+    .optional(),
+
   gender: z.number().optional(),
   address: z.string().optional(),
   latitude: z.number().optional(),
