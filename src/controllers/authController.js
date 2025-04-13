@@ -11,6 +11,7 @@ const {
   resetPasswordWithToken,
 } = require("@/services/passwordService");
 const { getAllRoles } = require("@/services/authService");
+const { sendEmail, getEmailTemplate } = require("@/utils/emailUtil");
 
 const prisma = new PrismaClient();
 
@@ -82,9 +83,15 @@ const register = async (req, res = null) => {
         profile: true,
       },
     });
-
-    if (res)
-      return successResponse(res, "User registered successfully", user, 201);
+    try {
+      const fullName = `${user.firstName} ${user.lastName}`;
+      const html = getEmailTemplate("welcome", { fullName });
+      await sendEmail(user.email, "Welcome to Ehtimami", html);
+    } catch (err) {
+      console.error("📨 Failed to send welcome email:", err.message);
+      // Optional: continue without blocking registration
+    }
+    if (res) return successResponse(res, "User registered successfully", user, 201);
     return { success: true, data: user };
   } catch (error) {
     if (res) return errorResponse(res, error.message || "An error occurred.");

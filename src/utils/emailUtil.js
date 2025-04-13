@@ -6,8 +6,6 @@ const path = require("path");
  * Send an email to the school manager with login credentials
  */
 const sendEmail = async (to, subject, html) => {
-    console.log("📧 EMAIL CONFIG:", { EMAIL_HOST, EMAIL_PORT, EMAIL_USER });
-
     const transporter = nodemailer.createTransport({
         host: EMAIL_HOST,
         port: EMAIL_PORT,
