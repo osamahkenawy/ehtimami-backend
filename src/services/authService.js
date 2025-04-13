@@ -1,14 +1,14 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { JWT_SECRET } = require("@config/config");
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 // ✅ Hash password
 const hashPassword = async (password) => {
     if (!password || typeof password !== "string") {
         throw new Error("Password must be a valid string");
     }
-
-    console.log("🔍 Debug Password Hashing...");
     const salt = await bcrypt.genSalt(12);
     return await bcrypt.hash(password, salt);
 };
@@ -97,8 +97,21 @@ const generateToken = (user) => {
     );
 };
 
+const getAllRoles = async () => {
+    return await prisma.role.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  };
+
 module.exports = {
     hashPassword,
     comparePassword,
     generateToken,
+    getAllRoles
 };
