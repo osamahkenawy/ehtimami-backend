@@ -1,6 +1,6 @@
 const express = require("express");
 const { register, login,    forgotPassword,
-    resetPassword } = require("@controllers/authController");
+    resetPassword, getAllRolesController } = require("@controllers/authController");
 
 const router = express.Router();
 
@@ -11,5 +11,6 @@ router.post("/login", login);
 // 🔁 Password Recovery
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.get('/roles', getAllRolesController);
 
 module.exports = router;
