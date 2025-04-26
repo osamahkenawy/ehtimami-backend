@@ -14,7 +14,6 @@ const profileSchema = z.object({
   marital_status: z.enum(["SINGLE", "MARRIED", "DIVORCED"]).optional(),
   nationality: z.string().optional(),
 
-  // ✅ Parse date strings to Date or null
   birth_date: z.string()
     .transform((val) => {
       const date = new Date(val);
@@ -40,18 +39,42 @@ const profileSchema = z.object({
   profile_visibility: z.string().optional()
 });
 
+// 🌟 Define parentInfo Schema
+const parentInfoSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  relationship: z.string().optional()
+});
+
+// 🌟 Final Student Schema including all fields
 const studentSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   email: z.string().email(),
   password: z.string().optional(),
-  phone: z.string().optional(), // ✅ ensure it's here
+  phone: z.string().optional(),
   schoolId: z.number(),
   grade: z.string(),
   section: z.string(),
   student_no: z.string(),
   classIds: z.array(z.number()).optional(),
-  profile: profileSchema.optional()
+  profile: profileSchema.optional(),
+
+  // 🧠 Student-specific fields (newly added)
+  admission_date: z.string().optional(), // Date string
+  previous_school: z.string().optional(),
+  guardian_name: z.string().optional(),
+  guardian_relation: z.string().optional(),
+  guardian_contact: z.string().optional(),
+  is_special_needs: z.boolean().optional(),
+  learning_style: z.string().optional(),
+  health_notes: z.string().optional(),
+  device_id: z.string().optional(),
+  student_category: z.string().optional(),
+
+  parentInfo: z.array(parentInfoSchema).optional()
 });
 
 const updateStudentSchema = studentSchema.partial().extend({
