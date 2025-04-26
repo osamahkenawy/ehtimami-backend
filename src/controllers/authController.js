@@ -73,10 +73,10 @@ const register = async (req, res = null) => {
         email,
         password: hashedPassword,
         is_verified: false,
-        status: UserStatus.ACTIVE, // ✅ Set Active Status
-        schools: schoolId ? { create: [{ schoolId }] } : undefined, // ✅ Assign school if provided
+        status: UserStatus.ACTIVE,
+        schools: schoolId ? { create: [{ schoolId }] } : undefined,
         roles: { create: validRoleIds.map((roleId) => ({ roleId })) },
-        profile: bio || avatar ? { create: { bio, avatar } } : undefined,
+        profile: { create: { bio: bio || "", avatar: avatar || "" } }
       },
       include: {
         roles: { include: { role: true } },

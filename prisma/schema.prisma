@@ -113,6 +113,8 @@ model UserProfile {
   birth_date         DateTime?
   join_date          DateTime      @default(now())
   gender             Int           @default(1)
+  user_language      String?       @default("en") @db.VarChar(10)
+  timezone             String?       @default("Asia/Riyadh") @db.VarChar(50) // 🌟 ADD THIS
   address            String?       @db.Text
   latitude           Float?
   longitude          Float?
