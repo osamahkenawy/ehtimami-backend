@@ -77,12 +77,22 @@ const fetchSchoolUsers = async (req, res) => {
         return errorResponse(res, err.message || "Failed to fetch school users");
     }
 };
-
+const fetchAllUsersBySchoolId = async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        const result = await schoolService.getAllUsersBySchoolId(schoolId);
+        return successResponse(res, "Users fetched successfully by school ID", result);
+    } catch (err) {
+        console.error("❌ Error:", err);
+        return errorResponse(res, err.message || "Failed to fetch school users");
+    }
+};
 module.exports = {
     createSchool,
     getAllSchools,
     getSchoolById,
     updateSchool,
     deleteSchool,
-    fetchSchoolUsers
+    fetchSchoolUsers,
+    fetchAllUsersBySchoolId
 };

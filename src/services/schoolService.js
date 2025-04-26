@@ -198,7 +198,58 @@ const getSchoolUsersByRole = async (schoolManagerId) => {
         }
     });
 
-    const grouped = { teachers: [], students: [], parents: [] };
+    const grouped = {
+        managers: [],
+        teachers: [],
+        students: [],
+        parents: []
+    };
+
+ users.forEach(user => {
+    const roles = user.roles.map(r => r.role.name);
+    const base = {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phone: user.phone,
+        profile: user.profile || null
+    };
+
+    if (roles.includes("school_manager")) grouped.managers.push(base);
+    if (roles.includes("teacher")) grouped.teachers.push(base);
+    if (roles.includes("student")) grouped.students.push(base);
+    if (roles.includes("parent")) grouped.parents.push(base);
+});
+
+    return grouped;
+};
+
+const getAllUsersBySchoolId = async (schoolId) => {
+    const parsedId = parseInt(schoolId);
+
+    const users = await prisma.user.findMany({
+        where: {
+            schools: {
+                some: {
+                    schoolId: parsedId
+                }
+            }
+        },
+        include: {
+            roles: { include: { role: true } },
+            profile: true,
+            schools: true,
+            student: true,
+            employee: true,
+            managedSchools: true
+        }
+    });
+
+    const grouped = {
+        managers: [],
+        teachers: [],
+        students: []
+    };
 
     users.forEach(user => {
         const roles = user.roles.map(r => r.role.name);
@@ -210,18 +261,16 @@ const getSchoolUsersByRole = async (schoolManagerId) => {
             profile: user.profile || null
         };
 
-        const schoolMatch = user.schools.find(s => s.schoolId === schoolId);
-        const schoolData = schoolMatch ? { ...schoolMatch.school } : null;
+        if (user.managedSchools.find(admin => admin.schoolId === parsedId)) {
+            grouped.managers.push(base);
+        }
 
-
-        if (roles.includes("teacher")) grouped.teachers.push({ ...base, school: schoolData });
+        if (roles.includes("teacher")) grouped.teachers.push(base);
         if (roles.includes("student")) grouped.students.push(base);
-        if (roles.includes("parent")) grouped.parents.push(base);
     });
 
     return grouped;
 };
-
 
 module.exports = {
     createSchool,
@@ -229,5 +278,6 @@ module.exports = {
     getSchoolById,
     updateSchool,
     deleteSchool,
-    getSchoolUsersByRole
+    getSchoolUsersByRole,
+    getAllUsersBySchoolId
 };

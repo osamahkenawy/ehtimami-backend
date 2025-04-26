@@ -1,5 +1,5 @@
 const express = require("express");
-const { createSchool, getAllSchools, getSchoolById, updateSchool, deleteSchool, fetchSchoolUsers } = require("@controllers/schoolController");
+const { createSchool, getAllSchools, getSchoolById, updateSchool, deleteSchool, fetchSchoolUsers, fetchAllUsersBySchoolId } = require("@controllers/schoolController");
 const { authenticate } = require("@middlewares/authMiddleware");
 const {checkSchoolExists} = require("@middlewares/checkSchoolExists");
 
@@ -11,5 +11,6 @@ router.get("/:schoolId", authenticate, getSchoolById);
 router.put("/:schoolId", authenticate, updateSchool);  
 router.delete("/:schoolId", authenticate, deleteSchool);  
 router.get("/users/:userId",authenticate, fetchSchoolUsers);
+router.get("/all-users/:schoolId", authenticate, fetchAllUsersBySchoolId);
 
 module.exports = router;
