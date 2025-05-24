@@ -9,12 +9,15 @@ const {
   deleteStudent,
   activateStudent,
   deactivateStudent,
-  connectParentsToStudent
+  connectParentsToStudent,
+  getStudentsWithMedicalConditionsController
 } = require("@/controllers/studentController");
 
 const router = express.Router();
 
 router.get("/all", getAllStudents);
+router.get("/medicalconditions", getStudentsWithMedicalConditionsController); 
+
 router.get("/:studentId", getStudentById);
 router.get("/school/:schoolId", getStudentsBySchoolId);
 router.get("/class/:classId", getStudentsByClassId);

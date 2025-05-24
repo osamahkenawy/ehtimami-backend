@@ -28,12 +28,27 @@ app.use(cors({
 app.use("/auth", authRoutes); // ✅ auth routes
 app.use("/schools", schoolRoutes);  // ✅ school routes
 app.use("/users", userRoutes);  // ✅ user Routes
-app.use("/dashboards",dashboardRoutes) // ✅ Dashboard Routes
+app.use("/dashboards", dashboardRoutes);
 app.use("/classes",classRoutes) // ✅ Class Routes
 app.use("/api", uploadRoutes);
 app.use("/teacher",teacherRoutes); // ✅ Teacher Routes
 app.use("/student",studentRoutes); // ✅ Student Routes
 
+// 4️⃣ ✅ Global 404 handler — after all routes
+app.use((req, res) => {
+    res.status(404).json({ status: 404, message: "Route not found" });
+  });
+  
+  // 5️⃣ ✅ Centralized error middleware — last in stack
+  app.use((err, req, res, next) => {
+    console.error("🔥 Error Handler:", err.stack);
+    res.status(err.status || 500).json({
+      status: err.status || 500,
+      message: err.message || "Internal Server Error"
+    });
+  });
+  
+  
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

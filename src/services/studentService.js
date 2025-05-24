@@ -37,12 +37,15 @@ const getStudentsByClassId = async (classId) => {
 
 
 const getStudentById = async (userId) => {
+  if (!userId) {
+    throw new Error("userId is required to fetch student.");
+  }
+
   return prisma.student.findUnique({
     where: { userId: Number(userId) },
     include: studentInclude
   });
 };
-
 const connectStudentWithParents = async (studentId, parentUserIds = []) => {
   const student = await prisma.student.findUnique({ where: { id: studentId } });
   if (!student) throw new Error("Student not found");
@@ -424,6 +427,24 @@ const deactivateStudent = async (studentId) => {
   return prisma.user.update({ where: { id: student.userId }, data: { status: "INACTIVE" } });
 };
 
+const getStudentsWithMedicalConditions = async (schoolId = null) => {
+  const whereCondition = {
+    AND: [
+      { health_notes: { not: null } },
+      { health_notes: { not: "" } }
+    ]
+  };
+
+  if (schoolId) {
+    whereCondition.AND.push({ schoolId: Number(schoolId) });
+  }
+
+  return prisma.student.findMany({
+    where: whereCondition,
+    include: studentInclude
+  });
+};
+
 module.exports = {
   getAllStudents,
   getStudentsBySchoolId,
@@ -434,5 +455,6 @@ module.exports = {
   deleteStudent,
   activateStudent,
   deactivateStudent,
-  connectStudentWithParents
+  connectStudentWithParents,
+  getStudentsWithMedicalConditions,
 };

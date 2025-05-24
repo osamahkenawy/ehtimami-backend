@@ -101,7 +101,18 @@ const connectParentsToStudent = async (req, res) => {
       return res.status(500).json({ message: error.message || "Failed to connect parents." });
     }
   };
-
+  const getStudentsWithMedicalConditionsController = async (req, res) => {
+    try {
+      const { schoolId } = req.query;
+      const students = await studentService.getStudentsWithMedicalConditions(schoolId);
+  
+      return successResponse(res, "Students with medical conditions fetched successfully", students);
+    } catch (err) {
+      console.error("Controller error", err); // 👈 better error
+      return errorResponse(res, err.message);
+    }
+  };
+  
 module.exports = {
   getAllStudents,
   getStudentById,
@@ -112,5 +123,6 @@ module.exports = {
   deleteStudent,
   activateStudent,
   deactivateStudent,
-  connectParentsToStudent
+  connectParentsToStudent,
+  getStudentsWithMedicalConditionsController
 };
