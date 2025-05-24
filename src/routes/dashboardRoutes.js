@@ -1,8 +1,21 @@
 const express = require("express");
-const router = express.Router();
-const { fetchDashboardCounts } = require("@/controllers/dashboardController");
+const {
+  getAdminDashboardCards,
+  getStudentsPerSchool,
+  getTeachersPerSchool,
+  getRecentRegistrations,
+  getClassUtilization,
+} = require("@/controllers/dashboardController");
 
-// Define a route for fetching school counts
-router.get("/cards", fetchDashboardCounts);
+const router = express.Router();
+
+// Admin Dashboard Cards (metrics)
+router.get("/cards", getAdminDashboardCards);
+
+// Students per School (for chart usage)
+router.get("/students-per-school", getStudentsPerSchool);
+router.get("/teachers-per-school", getTeachersPerSchool);
+router.get("/recent-registrations", getRecentRegistrations);
+router.get("/class-utilization", getClassUtilization);
 
 module.exports = router;
