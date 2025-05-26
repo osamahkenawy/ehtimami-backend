@@ -10,6 +10,7 @@ const classRoutes = require("@routes/classRoutes");
 const uploadRoutes = require("@routes/uploadRoutes");
 const teacherRoutes = require("@routes/teacherRoutes");
 const studentRoutes = require("@routes/studentRoutes");
+const roleRoutes = require('@routes/roleRoutes');
 
 
 const app = express();
@@ -33,6 +34,8 @@ app.use("/classes",classRoutes) // ✅ Class Routes
 app.use("/api", uploadRoutes);
 app.use("/teacher",teacherRoutes); // ✅ Teacher Routes
 app.use("/student",studentRoutes); // ✅ Student Routes
+app.use("/roles",roleRoutes); // ✅ Roles Routes
+
 
 // 4️⃣ ✅ Global 404 handler — after all routes
 app.use((req, res) => {
